@@ -3,39 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Simple Page</title>
+  <title>Workshop Exercises</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       margin: 0;
-      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #222;
     }
 
-    .container {
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: white;
+      padding: 60px 20px;
       text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 3rem;
+    }
+
+    header p {
+      margin-top: 15px;
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
       background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    h1 {
-      color: #333;
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
     }
 
-    p {
+    .card h2 {
+      margin-top: 0;
+      color: #1e3a8a;
+    }
+
+    .card p {
+      color: #555;
+      line-height: 1.5;
+    }
+
+    .card a {
+      display: inline-block;
+      margin-top: 18px;
+      text-decoration: none;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: background 0.2s ease;
+    }
+
+    .card a:hover {
+      background: #1d4ed8;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 20px;
       color: #666;
+      font-size: 0.95rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Hello, World!</h1>
-    <p>This is a simple GitHub Pages website.</p>
-  </div>
+  <header>
+    <h1>Interactive Workshop Exercises</h1>
+    <p>Hands-on activities, demos, and exercises for workshop participants.</p>
+  </header>
+
+  <main>
+    <div class="grid">
+      <div class="card">
+        <h2>Workshop Title 1</h2>
+        <p>
+          Short description of the workshop and the exercises included.
+        </p>
+        <a href="workshop1.html">Open Workshop</a>
+      </div>
+
+      <div class="card">
+        <h2>Workshop Title 2</h2>
+        <p>
+          Add another workshop page and update the link below.
+        </p>
+        <a href="workshop2.html">Open Workshop</a>
+      </div>
+
+      <div class="card">
+        <h2>Workshop Title 3</h2>
+        <p>
+          Add as many workshop cards as needed for your repository.
+        </p>
+        <a href="workshop3.html">Open Workshop</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    © 2026 Your Name • Workshop Repository
+  </footer>
 </body>
 </html>
