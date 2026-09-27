@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eye Impact Simulation</title>
+<style>
+  :root { --bg:#0f141a; --panel:#18202a; --text:#e6edf3; --muted:#8b98a5; --accent:#6cb6ff; --warn:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif; padding:16px; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 12px; }
+  .grid { display:grid; grid-template-columns: 1fr 280px; gap:14px; }
+  @media (max-width:820px){ .grid{ grid-template-columns:1fr; } }
+  canvas { width:100%; height:auto; background:#0b1016; border-radius:10px; display:block; }
+  .panel { background:var(--panel); border-radius:10px; padding:14px; }
+  .ctrl { margin-bottom:12px; }
+  .ctrl label { display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:4px; }
+  .ctrl label b { color:var(--text); }
+  input[type=range]{ width:100%; }
+  button { background:var(--accent); color:#06121f; border:0; border-radius:8px; padding:9px 14px; font-weight:600; cursor:pointer; width:100%; font-size:14px; }
+  .chk { display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); margin:8px 0 14px; }
+  ol { padding-left:20px; margin:0; }
+  ol li { color:var(--muted); margin:6px 0; font-size:13.5px; transition:color .2s; }
+  ol li.on { color:var(--text); font-weight:600; }
+  ol li.done { color:#b9c6d2; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; background:#0f141a; font-size:13.5px; min-height:44px; }
+  .note { color:var(--muted); font-size:12.5px; margin-top:12px; }
+  .seg { display:flex; gap:6px; }
+  .seg button { background:#0f141a; color:var(--muted); border:1px solid #2c3845; padding:7px 0; font-weight:500; }
+  .seg button.on { background:var(--accent); color:#06121f; border-color:var(--accent); font-weight:600; }
+  .intro { background:var(--panel); border-radius:10px; padding:12px 16px; margin-bottom:14px; font-size:14px; }
+  .intro p { margin:0 0 6px; } .intro p:last-child{ margin:0; }
+  .intro .warn { color:#f2c46d; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>How a blow near the eye can tear the retina</h1>
+  <div class="intro">
+    <p>The inside of the eye is filled with a clear jelly, the <b>vitreous gel</b>. It is attached to the <b>retina</b>, the thin light-sensitive layer lining the back of the eye. When something hits the bone next to the eye, the eye is jolted. The gel is heavy and lags behind, so it can pull away from the retina. If it stays stuck at one spot, it can rip a <b>small tear</b> in the retina. This is more likely in older eyes, because the gel becomes more watery and loosens with age.</p>
+    <p>Pick an age group and an impact strength, then press Play. The view is a side cut through the eye: the front is on the left, the back (optic nerve) on the right.</p>
+    <p class="warn">⚠ This is a simplified illustration for explanation only. Sizes, forces and outcomes are not medically accurate and are not a physics model.</p>
+  </div>
+  <div class="grid">
+    <canvas id="c" width="900" height="540"></canvas>
+    <div class="panel">
+      <div class="ctrl"><label>Age group</label><div class="seg" id="age"><button data-v="0">Low</button><button data-v="1">Middle</button><button data-v="2" class="on">High</button></div></div>
+      <div class="ctrl"><label>Impact strength</label><div class="seg" id="imp"><button data-v="0">Low</button><button data-v="1" class="on">Medium</button><button data-v="2">High</button></div></div>
+      <div class="chk"><input id="slow" type="checkbox" checked><label for="slow">Slow motion</label></div>
+      <button id="play">▶ Play</button>
+      <ol id="steps" style="margin-top:14px">
+        <li>Ball approaches, aimed next to the eye</li>
+        <li>Ball hits the brow bone; shock jolts the eye</li>
+        <li>Gel lags behind &amp; sloshes (inertia)</li>
+        <li>Gel peels away from retina (PVD)</li>
+        <li>Stuck spot yanks retina → small tear</li>
+      </ol>
+      <div class="result" id="result">Press play.</div>
+      <div class="note">Try a low vs high age group. With age the gel liquefies and loosens, so it sloshes more and peels off more easily.</div>
+    </div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const W=cv.width, H=cv.height, cx=500, cy=270, R=190, deg=Math.PI/180;
+const TH_T=-75; // tear site (degrees; negative = upper side)
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const sstep=(e0,e1,x)=>{const t=clamp((x-e0)/(e1-e0));return t*t*(3-2*t);};
+const easeOut=x=>1-Math.pow(1-clamp(x),3);
+
+let t=0, running=false, last=0, S, particles=[], floaters=[];
+const sel=id=>+document.querySelector('#'+id+' .on').dataset.v;
+// outcome per [age][impact]: 0 = no damage, 1 = gel detaches, 2 = detachment + tear
+const OUTCOME=[[0,0,0],[0,0,1],[1,2,2]];
+function reset(){
+  const ai=sel('age'), ii=sel('imp');
+  const lf=[0.1,0.5,0.9][ai], imp=[0.35,0.65,0.95][ii];
+  S={imp, lf, A:imp*(14+26*lf), gam:5-2.5*lf, detachT:null, tearT:null, releaseT:null};
+  const out=OUTCOME[ai][ii];
+  let peak=0; for(let tau=0;tau<0.6;tau+=0.002) peak=Math.max(peak, S.A*Math.exp(-S.gam*tau)*Math.sin(14*tau));
+  S.thr = out>0 ? peak*0.85 : peak*1.4; // threshold set so the chosen outcome happens
+  S.willTear = out===2;
+  t=0; particles=[]; floaters=[];
+}
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+  b.parentNode.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); reset(); draw();});
+$('play').onclick=()=>{reset(); running=true; $('play').textContent='↻ Replay'; last=performance.now(); requestAnimationFrame(loop);};
+
+function gx(){const tau=t-1; return tau>0 ? -S.A*Math.exp(-S.gam*tau)*Math.sin(14*tau) : 0;}
+function torn(){return S.tearT!==null && t>=S.tearT;}
+function flapL(){return torn()? 20*easeOut((t-S.tearT)/0.35):0;}
+function lift(d){ // retina lift at angle d (degrees)
+  const L=flapL(); if(!L) return 0;
+  if(d>=TH_T-10 && d<=TH_T+2) return L*sstep(TH_T-10,TH_T+2,d);
+  return 0;
+}
+function stuck(){
+  if(torn()) return 1;
+  if(S.releaseT!==null && t>S.releaseT) return 1-clamp((t-S.releaseT)/0.3);
+  return 1;
+}
+function sep(d){ // gap between gel and retina at angle d
+  if(S.detachT===null) return 0;
+  const a=Math.abs(d), g=gx();
+  const Dp=easeOut((t-S.detachT)/0.8);
+  const base=34*sstep(95,55,a);
+  const trans=Math.max(0,-g*Math.cos(d*deg))*sstep(100,70,a);
+  let s=Math.max(Dp*base,trans);
+  const w=Math.exp(-Math.pow((d-(TH_T+1))/5,2))*stuck();
+  let target=0; const L=flapL();
+  if(L) target = d<=TH_T+2 ? lift(d) : L;
+  return s*(1-w)+target*w;
+}
+function wallPt(d,r){return [cx+r*Math.cos(d*deg), cy+r*Math.sin(d*deg)];}
+
+function update(dt){
+  t+=dt;
+  const g=gx();
+  if(S.detachT===null && t>1 && -g>S.thr){
+    S.detachT=t;
+    if(S.willTear) S.tearT=t+0.25; else S.releaseT=t+0.9;
+    for(let i=0;i<6;i++) floaters.push({x:cx+40+Math.random()*110, y:cy-90+Math.random()*180, r:2+Math.random()*3, p:Math.random()*6});
+  }
+  if(torn() && t<S.tearT+1.8 && Math.random()<0.6){
+    const [x,y]=wallPt(TH_T+3,R-4-flapL());
+    particles.push({x,y,vx:-10-Math.random()*25,vy:6+Math.random()*10,life:1});
+  }
+  particles.forEach(p=>{p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=18*dt; p.vx*=0.99; p.life-=dt*0.35;});
+  particles=particles.filter(p=>p.life>0);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const tau=t-1, imp=S.imp;
+  const sx = tau>0 ? 1-0.05*imp*Math.exp(-6*tau)*Math.cos(18*tau) : 1;
+  const g=gx();
+
+  // ---- bony eye socket (orbit) ----
+  const bj = tau>0 ? 5*imp*Math.exp(-7*tau)*Math.sin(30*tau) : 0;
+  ctx.save(); ctx.translate(bj, bj*0.6);
+  ctx.strokeStyle='#cdbf9f'; ctx.lineCap='round'; ctx.lineWidth=18;
+  ctx.beginPath(); ctx.arc(cx,cy,R+48,-150*deg,-25*deg); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R+48,25*deg,150*deg); ctx.stroke();
+  ctx.lineWidth=26; ctx.beginPath(); ctx.moveTo(...wallPt(-150,R+48)); ctx.lineTo(cx-232,cy-150); ctx.stroke(); // brow ridge
+  ctx.beginPath(); ctx.moveTo(...wallPt(150,R+48)); ctx.lineTo(cx-225,cy+150); ctx.stroke(); // cheekbone
+  // shock wave travelling through the bone
+  if(tau>0 && tau<0.6){
+    const a0=-152, spread=tau*260;
+    ctx.strokeStyle=`rgba(255,200,90,${1-tau/0.6})`; ctx.lineWidth=6;
+    ctx.beginPath(); ctx.arc(cx,cy,R+48,a0*deg,Math.min(-25,a0+spread)*deg); ctx.stroke();
+  }
+  ctx.restore();
+
+  // ---- eye (jolted by the shock + slight squash) ----
+  const ej = tau>0 ? imp*Math.exp(-5*tau) : 0;
+  ctx.save();
+  ctx.translate(cx+10*ej*Math.sin(16*tau), cy+6*ej*Math.sin(16*tau+0.6)); ctx.scale(sx, 1+(1-sx)*0.5); ctx.translate(-cx,-cy);
+
+  // optic nerve
+  ctx.fillStyle='#d9cfbf'; ctx.fillRect(cx+R, cy-20, 90, 40);
+  ctx.fillStyle='#bfb3a1'; ctx.fillRect(cx+R, cy-8, 90, 16);
+  // cornea bulge fill
+  const ccx=cx-110, cr=109.5;
+  ctx.fillStyle='#132232'; ctx.beginPath(); ctx.arc(ccx,cy,cr,0,2*Math.PI); ctx.fill();
+  // interior
+  ctx.fillStyle='#132232'; ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI); ctx.fill();
+  // choroid
+  ctx.strokeStyle='#7a1f2a'; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(cx,cy,R+2,-140*deg,140*deg); ctx.stroke();
+  // sclera
+  ctx.strokeStyle='#efe9df'; ctx.lineWidth=12; ctx.beginPath(); ctx.arc(cx,cy,R+10,-150*deg,150*deg); ctx.stroke();
+  // cornea
+  ctx.strokeStyle='#9fd3ff'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(ccx,cy,cr,2.09,4.19); ctx.stroke();
+  // iris
+  ctx.strokeStyle='#5b8a6f'; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(cx-160,cy-95); ctx.lineTo(cx-155,cy-38); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-160,cy+95); ctx.lineTo(cx-155,cy+38); ctx.stroke();
+  // lens
+  ctx.fillStyle='rgba(230,215,160,0.85)'; ctx.beginPath(); ctx.ellipse(cx-138,cy,20,62,0,0,2*Math.PI); ctx.fill();
+
+  // vitreous gel
+  const pts=[];
+  for(let d=-135; d<=135; d+=2){ pts.push(wallPt(d, R-3-sep(d))); }
+  const gel=new Path2D();
+  gel.moveTo(pts[0][0],pts[0][1]);
+  pts.forEach(p=>gel.lineTo(p[0],p[1]));
+  gel.quadraticCurveTo(cx-95+g*0.3, cy, pts[0][0], pts[0][1]);
+  ctx.fillStyle = `rgba(120,190,255,${0.30-0.08*S.lf})`; ctx.fill(gel);
+  ctx.strokeStyle='rgba(160,215,255,0.8)'; ctx.lineWidth=1.5; ctx.stroke(gel);
+  // gel fibres (show slosh)
+  ctx.save(); ctx.clip(gel);
+  ctx.strokeStyle='rgba(190,230,255,0.35)'; ctx.lineWidth=1.2;
+  for(let k=-4;k<=4;k++){
+    ctx.beginPath();
+    for(let x=cx-115; x<=cx+R; x+=6){
+      const f=(x-(cx-115))/(R+115);
+      const y=cy+k*38+Math.sin(x*0.04+k)*6*(1+Math.abs(g)/10)*(0.3+S.lf);
+      const xx=x+g*(0.4+0.8*f);
+      x===cx-115?ctx.moveTo(xx,y):ctx.lineTo(xx,y);
+    }
+    ctx.stroke();
+  }
+  // floaters
+  floaters.forEach(f=>{ctx.fillStyle='rgba(40,50,60,0.9)'; ctx.beginPath(); ctx.arc(f.x+g*0.6+Math.sin(t*1.3+f.p)*4, f.y+Math.cos(t+f.p)*3, f.r,0,2*Math.PI); ctx.fill();});
+  ctx.restore();
+
+  // retina (coloured by pulling tension before detachment)
+  const tr=torn();
+  for(let d=-140; d<140; d+=2){
+    if(tr && d>=TH_T+2 && d<TH_T+6) continue; // hole
+    let ten = S.detachT===null ? clamp(Math.max(0,-g*Math.cos(d*deg))/S.thr) * (Math.abs(d)<95?1:0) : 0;
+    if(S.detachT!==null && !tr && stuck()>0.5) ten=Math.max(ten, Math.exp(-Math.pow((d-TH_T)/6,2)));
+    const r1=R-2-lift(d), r2=R-2-lift(d+2);
+    const [x1,y1]=wallPt(d,r1), [x2,y2]=wallPt(Math.min(d+2,tr&&d+2>TH_T+2&&d<TH_T+2?TH_T+2:d+2), r2);
+    const c1=[232,140,100], c2=[255,230,80];
+    ctx.strokeStyle=`rgb(${c1.map((c,i)=>Math.round(c+(c2[i]-c)*ten)).join(',')})`;
+    ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  if(tr){ // exposed hole
+    ctx.strokeStyle='#c0182b'; ctx.lineWidth=6; ctx.beginPath(); ctx.arc(cx,cy,R-1,(TH_T+2.5)*deg,(TH_T+5.5)*deg); ctx.stroke();
+  }
+  // blood
+  particles.forEach(p=>{ctx.fillStyle=`rgba(200,20,40,${p.life*0.8})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.2,0,2*Math.PI); ctx.fill();});
+  ctx.restore();
+
+  // ---- ball ----
+  const hitX=cx-259, hitY=cy-177; // ball centre when touching brow ridge
+  const sX=30, sY=30; // start: top-left corner
+  let bx, by;
+  if(t<1){ const p=t*t*(0.3+0.7*t); bx=sX+(hitX-sX)*p; by=sY+(hitY-sY)*p; }
+  else { const q=1-Math.exp(-2.5*(t-1)); bx=hitX-110*S.imp*q; by=hitY-60*S.imp*q; }
+  const bg=ctx.createRadialGradient(bx-8,by-10,4,bx,by,28);
+  bg.addColorStop(0,'#fff6a8'); bg.addColorStop(1,'#c9c21e');
+  ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(bx,by,26,0,2*Math.PI); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.8)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(bx-30,by,26,-0.9,0.9); ctx.stroke(); ctx.beginPath(); ctx.arc(bx+30,by,26,Math.PI-0.9,Math.PI+0.9); ctx.stroke();
+  if(tau>0 && tau<0.35){ // impact flash
+    ctx.strokeStyle=`rgba(255,220,120,${1-tau/0.35})`; ctx.lineWidth=3;
+    for(let i=1;i<=3;i++){ctx.beginPath(); ctx.arc(hitX+20,hitY+20,tau*200*i/3,0,2*Math.PI); ctx.stroke();}
+  }
+
+  // ---- labels ----
+  ctx.font='13px system-ui, sans-serif'; ctx.fillStyle='#8b98a5'; ctx.strokeStyle='#44515e'; ctx.lineWidth=1;
+  const lab=(txt,x1,y1,x2,y2,col)=>{ctx.strokeStyle=col||'#44515e'; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.fillStyle=col||'#8b98a5'; ctx.fillText(txt,x2+(x2<x1?-ctx.measureText(txt).width-4:4),y2+4);};
+  lab('Cornea',cx-222,cy+45,cx-265,cy+110);
+  lab('Lens',cx-138,cy+62,cx-150,cy+160);
+  lab('Vitreous gel',cx+30,cy+60,cx-60,cy+205);
+  lab('Retina',...wallPt(40,R-2),cx+230,cy+185);
+  lab('Sclera (eye wall)',...wallPt(-25,R+12),cx+235,cy-120);
+  lab('Eye socket bone',...wallPt(-110,R+56),cx-150,cy-245);
+  lab('Optic nerve',cx+R+60,cy+20,cx+R+70,cy+60);
+  if(S.detachT!==null) lab('Gap: gel pulled off retina',...wallPt(15,R-18),cx+215,cy-40,'#9fd3ff');
+  if(tr) lab('Retinal tear',...wallPt(TH_T+3,R-8),cx+150,cy-240,'#ff6b6b');
+  else if(S.detachT!==null && stuck()>0.5) lab('Gel still stuck here → pulling',...wallPt(TH_T,R-6),cx+120,cy-240,'#ffe45c');
+
+  // timer
+  ctx.fillStyle='#44515e'; ctx.fillText(`t = ${(t*1000/1000).toFixed(2)} s (animation time)`, 16, H-14);
+  updateUI();
+}
+
+function stage(){
+  if(t<1) return 0;
+  if(t<1.25) return 1;
+  if(S.detachT===null) return 2;
+  if(torn()) return 4;
+  return 3;
+}
+function updateUI(){
+  const s=stage();
+  [...$('steps').children].forEach((li,i)=>{li.className = i===s ? 'on' : (i<s?'done':'');});
+  let r='';
+  if(!running && t===0) r='Press play.';
+  else if(t>3){
+    if(torn()) r='<b style="color:#ff6b6b">Result: retinal tear.</b> The gel detached but stayed glued at one spot, ripping a small flap. Needs urgent laser treatment in real life (can lead to retinal detachment).';
+    else if(S.detachT!==null) r='<b style="color:#9fd3ff">Result: vitreous detachment, no tear.</b> Gel let go cleanly. Typical symptoms: new floaters, light flashes.';
+    else r='<b style="color:#7ee2a8">Result: no damage.</b> Gel is firm and well attached — it wobbled but sprang back.';
+  } else r='…';
+  $('result').innerHTML=r;
+}
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000)*($('slow').checked?0.3:1); last=now;
+  update(dt); draw();
+  if(t<6) requestAnimationFrame(loop); else running=false;
+}
+reset(); draw();
+</script>
+</body>
+</html>
