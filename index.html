@@ -3,132 +3,176 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Workshop Exercises</title>
+  <title>Workshops &amp; Simulations</title>
   <style>
-    * {
-      box-sizing: border-box;
+    :root {
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #1e3a8a;
+      --border: #e5e7eb;
+      --bg: #ffffff;
+      --bg-soft: #f9fafb;
     }
+
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f7fb;
-      color: #222;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
     }
 
-    header {
-      background: linear-gradient(135deg, #1e3a8a, #2563eb);
-      color: white;
-      padding: 60px 20px;
-      text-align: center;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 3rem;
-    }
-
-    header p {
-      margin-top: 15px;
-      font-size: 1.1rem;
-      opacity: 0.9;
-    }
-
-    main {
-      max-width: 1000px;
-      margin: 40px auto;
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
       padding: 0 20px;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 24px;
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 56px 0 32px;
     }
 
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    header h1 {
+      margin: 0 0 12px;
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--accent);
     }
 
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
     }
 
-    .card h2 {
-      margin-top: 0;
-      color: #1e3a8a;
+    section {
+      margin: 40px 0;
     }
 
-    .card p {
-      color: #555;
-      line-height: 1.5;
+    section h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 12px;
     }
 
-    .card a {
-      display: inline-block;
-      margin-top: 18px;
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border-top: 1px solid var(--border);
+    }
+
+    li { border-bottom: 1px solid var(--border); }
+
+    li a {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 8px;
       text-decoration: none;
-      background: #2563eb;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-weight: bold;
-      transition: background 0.2s ease;
+      color: inherit;
+      transition: background 0.15s ease;
     }
 
-    .card a:hover {
-      background: #1d4ed8;
+    li a:hover { background: var(--bg-soft); }
+
+    .title {
+      display: block;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .desc {
+      display: block;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .arrow {
+      color: var(--muted);
+      flex-shrink: 0;
     }
 
     footer {
-      text-align: center;
-      padding: 40px 20px;
-      color: #666;
-      font-size: 0.95rem;
+      border-top: 1px solid var(--border);
+      padding: 24px 0 40px;
+      color: var(--muted);
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Interactive Workshop Exercises</h1>
-    <p>Hands-on activities, demos, and exercises for workshop participants.</p>
+    <div class="container">
+      <h1>Workshops &amp; Simulations</h1>
+      <p>
+        This page collects the interactive workshops and simulations used in my
+        sessions. Workshops guide you step by step through hands-on exercises;
+        simulations let you explore a concept by changing parameters and
+        observing the results. Select an item below to get started.
+      </p>
+    </div>
   </header>
 
-  <main>
-    <div class="grid">
-      <div class="card">
-        <h2>Workshop Title 1</h2>
-        <p>
-          Short description of the workshop and the exercises included.
-        </p>
-        <a href="workshop1.html">Open Workshop</a>
-      </div>
+  <main class="container">
+    <section>
+      <h2>Interactive Workshops</h2>
+      <ul>
+        <li>
+          <a href="workshops/workshop1.html">
+            <span>
+              <span class="title">Workshop Title 1</span>
+              <span class="desc">One-line description of the workshop.</span>
+            </span>
+            <span class="arrow">→</span>
+          </a>
+        </li>
+        <li>
+          <a href="workshops/workshop2.html">
+            <span>
+              <span class="title">Workshop Title 2</span>
+              <span class="desc">One-line description of the workshop.</span>
+            </span>
+            <span class="arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </section>
 
-      <div class="card">
-        <h2>Workshop Title 2</h2>
-        <p>
-          Add another workshop page and update the link below.
-        </p>
-        <a href="workshop2.html">Open Workshop</a>
-      </div>
-
-      <div class="card">
-        <h2>Workshop Title 3</h2>
-        <p>
-          Add as many workshop cards as needed for your repository.
-        </p>
-        <a href="workshop3.html">Open Workshop</a>
-      </div>
-    </div>
+    <section>
+      <h2>Simulations</h2>
+      <ul>
+        <li>
+          <a href="simulations/simulation1.html">
+            <span>
+              <span class="title">Simulation Title 1</span>
+              <span class="desc">One-line description of the simulation.</span>
+            </span>
+            <span class="arrow">→</span>
+          </a>
+        </li>
+        <li>
+          <a href="simulations/simulation2.html">
+            <span>
+              <span class="title">Simulation Title 2</span>
+              <span class="desc">One-line description of the simulation.</span>
+            </span>
+            <span class="arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </section>
   </main>
 
   <footer>
-    © 2026 Your Name • Workshop Repository
+    <div class="container">© 2026 Afshin Amighi</div>
   </footer>
 </body>
 </html>
