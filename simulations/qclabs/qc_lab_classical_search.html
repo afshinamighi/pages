@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Classical Oracle Search</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: same instrument column as the quantum labs — controls, the unrolled search circuit, then code beside the oracle and the result */
+:root{
+  --bg:#F1F4F6; --surface:#FFFFFF; --ink:#13202B; --muted:#5A6875;
+  --line:#D6DDE3; --line-strong:#9AA8B4;
+  --pos:#1D6C8A; --neg:#BF463A; --target:#C97C16; --target-soft:rgba(201,124,22,.12);
+  --pos-soft:rgba(29,108,138,.10); --ok:#2E7D4F; --ok-soft:rgba(46,125,79,.12);
+  --code-bg:#F6F8FA;
+  --display:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1318; --surface:#141C23; --ink:#E3EAF0; --muted:#8E9CA9;
+  --line:#26323D; --line-strong:#4A5A68;
+  --pos:#53B4D6; --neg:#EF7B6D; --target:#F0A445; --target-soft:rgba(240,164,69,.14);
+  --pos-soft:rgba(83,180,214,.12); --ok:#5CC48A; --ok-soft:rgba(92,196,138,.13);
+  --code-bg:#0F171D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1318; --surface:#141C23; --ink:#E3EAF0; --muted:#8E9CA9;
+  --line:#26323D; --line-strong:#4A5A68;
+  --pos:#53B4D6; --neg:#EF7B6D; --target:#F0A445; --target-soft:rgba(240,164,69,.14);
+  --pos-soft:rgba(83,180,214,.12); --ok:#5CC48A; --ok-soft:rgba(92,196,138,.13);
+  --code-bg:#0F171D; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:10px 0 0;max-width:78ch;line-height:1.6}
+.sub strong{color:var(--ink);font-weight:600}
+.ket,.mono{font-family:var(--mono);font-weight:500}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.label{font-family:var(--display);font-weight:600;font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+
+/* manual */
+.manual summary{font-family:var(--display);font-weight:600;font-size:1.05rem;cursor:pointer}
+.manual ol{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.manual ol li::marker{font-family:var(--display);font-weight:700;color:var(--pos)}
+.manual b{font-weight:600}
+.tips{margin:12px 0 0;padding:10px 0 0 18px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.tips b{color:var(--pos)}
+.chip{display:inline-block;font-family:var(--display);font-weight:600;font-size:.82em;padding:1px 8px;border-radius:5px;border:1px solid var(--line-strong);background:var(--bg);color:var(--ink);white-space:nowrap}
+
+/* controls */
+.controls{display:grid;grid-template-columns:auto 1fr;gap:16px 28px;align-items:start}
+@media (max-width:760px){.controls{grid-template-columns:1fr}}
+.bits{display:flex;gap:6px;align-items:flex-end}
+.bit{display:flex;flex-direction:column;align-items:center;gap:3px}
+.bit small{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.bit button{width:40px;height:44px;border-radius:6px;border:1px solid var(--pos);background:var(--pos-soft);color:var(--pos);
+  font-family:var(--mono);font-size:1.2rem;font-weight:600;cursor:pointer}
+.bit button:hover:not(:disabled){background:var(--pos);color:var(--surface)}
+.bit button:disabled{opacity:.4;cursor:not-allowed}
+.cand-val{font-family:var(--mono);font-size:.85rem;color:var(--muted);margin-left:8px;align-self:center}
+.hint{font-size:.78rem;color:var(--muted);margin:8px 0 0;max-width:30ch}
+.ops{display:flex;flex-wrap:wrap;gap:8px}
+.op{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:118px;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left;font:inherit;
+  transition:border-color .15s,background .15s,box-shadow .15s}
+.op b{font-family:var(--display);font-weight:600;font-size:1rem}
+.op span{font-size:.74rem;color:var(--muted)}
+.op:hover:not(:disabled){border-color:var(--pos);background:var(--pos-soft)}
+.op.suggest{border-color:var(--pos);background:var(--pos-soft);box-shadow:0 0 0 3px var(--pos-soft)}
+.op.suggest b,.op.suggest span{color:var(--pos)}
+.op.suggest b::after{content:" ← next";font-family:var(--body);font-weight:500;font-size:.7rem;color:var(--pos)}
+.op.quiet{min-width:0;border-style:dashed}
+.op-select{cursor:default}
+.op-select select{margin-top:3px;font-family:var(--mono);font-size:.82rem;padding:2px 4px;border-radius:4px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer}
+.op:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
+.switch{display:inline-flex;align-items:center;gap:10px;margin-top:12px;font:inherit;font-size:.9rem;background:none;border:0;color:var(--ink);cursor:pointer;padding:0}
+.switch .track{width:40px;height:22px;border-radius:999px;background:var(--line-strong);position:relative;transition:background .2s;flex:none}
+.switch .track::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:transform .2s}
+.switch[aria-pressed="true"] .track{background:var(--target)}
+.switch[aria-pressed="true"] .track::after{transform:translateX(18px)}
+.stepper{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.step-btn{font:inherit;font-family:var(--display);font-weight:600;font-size:.95rem;padding:7px 14px;border-radius:999px;
+  border:1px solid var(--pos);background:var(--pos-soft);color:var(--pos);cursor:pointer}
+.step-btn:hover:not(:disabled){background:var(--pos);color:var(--surface)}
+.step-btn:disabled{opacity:.35;cursor:not-allowed}
+.step-pos{font-family:var(--mono);font-size:.85rem;font-variant-numeric:tabular-nums;min-width:12ch;text-align:center}
+.step-keys{font-size:.75rem;color:var(--muted)}
+.guide{margin:12px 0 0;font-size:.9rem;min-height:1.5em}
+.guide strong{color:var(--pos);font-weight:600}
+
+/* circuits */
+.circ-scroll{overflow-x:auto;padding-bottom:4px;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){.circ-scroll{scroll-behavior:auto}}
+.qc text{font-family:var(--mono);fill:var(--ink)}
+.c-wire{stroke:var(--line-strong);stroke-width:1.4}
+.c-lab{font-size:12px;fill:var(--muted)!important}
+.c-zero{font-size:10px;fill:var(--muted)!important;text-anchor:end}
+.c-reg{font-size:9.5px;fill:var(--muted)!important;font-family:var(--display)!important;letter-spacing:.08em;text-transform:uppercase}
+.c-gate{fill:var(--surface);stroke:var(--ink);stroke-width:1.3}
+.c-not{fill:var(--pos-soft);stroke:var(--pos)}
+.c-orc{fill:var(--target-soft);stroke:var(--target)}
+.c-orc-open{fill:none;stroke:var(--target);stroke-dasharray:5 4}
+.c-txt{font-size:10px;font-weight:600;text-anchor:middle;dominant-baseline:central}
+.c-big{font-family:var(--display)!important;font-size:13px;font-weight:600;text-anchor:middle}
+.c-small{font-size:9.5px;fill:var(--muted)!important;text-anchor:middle}
+.c-brk{stroke:var(--muted);stroke-width:1;fill:none}
+.c-iter{font-size:10px;fill:var(--muted)!important;text-anchor:middle;font-family:var(--display)!important;letter-spacing:.05em;text-transform:uppercase}
+.c-iter.hit{fill:var(--ok)!important;font-weight:700}
+.c-dot{fill:var(--ink)}
+.c-ctl{stroke:var(--ink);stroke-width:1.6;fill:none}
+.c-badge{font-size:10.5px;font-weight:600}
+.c-badge.zero{fill:var(--muted)!important}
+.c-badge.one{fill:var(--ok)!important}
+.c-out{font-size:13px;font-weight:600}
+.c-empty{font-size:12px;fill:var(--muted)!important;font-family:var(--body)!important}
+.c-hitbox{fill:var(--ok-soft);stroke:none}
+.fresh .c-gate{stroke-width:2.2}
+.ghost{opacity:.28}
+.c-cursor{stroke:var(--pos);stroke-width:2;stroke-dasharray:4 3}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:.78rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{display:inline-flex;align-items:center;justify-content:center;width:26px;height:18px;border-radius:3px;font-family:var(--mono);font-size:.6rem;font-weight:600}
+.lg.not{background:var(--pos-soft);border:1px solid var(--pos);color:var(--ink)}
+.lg.orc{background:var(--target-soft);border:1px solid var(--target);color:var(--ink)}
+
+/* lower grid */
+.lower{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.lower{grid-template-columns:1fr}}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+pre.code{margin:0;padding:12px 14px;border-radius:8px;background:var(--code-bg);border:1px solid var(--line);font-family:var(--mono);font-size:.84rem;line-height:1.6;overflow-x:auto}
+.code .kw{color:var(--pos);font-weight:600}
+.code .lit{color:var(--target);font-weight:600}
+.code .cm{color:var(--muted)}
+.code .no{color:var(--neg);font-weight:600}
+.code .yes{color:var(--ok);font-weight:600}
+.code-cap{font-size:.82rem;color:var(--muted);margin:14px 0 6px}
+.code-cap:first-of-type{margin-top:0}
+.log{max-height:220px;overflow-y:auto}
+.result-row{display:flex;flex-wrap:wrap;gap:16px 26px;align-items:flex-end}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat .v{font-family:var(--display);font-weight:700;font-size:2.2rem;line-height:1;font-variant-numeric:tabular-nums}
+.stat .v.res{font-family:var(--mono);letter-spacing:.04em}
+.stat .v.res.found{color:var(--ok)}
+.stat .d{font-size:.8rem;color:var(--muted)}
+.cands{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:14px}
+.cand{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0;border-radius:6px;border:1px solid var(--line);background:var(--bg);
+  font:inherit;color:var(--ink);cursor:pointer}
+.cand b{font-family:var(--mono);font-size:.86rem;font-weight:600}
+.cand small{font-size:.64rem;color:var(--muted)}
+.cand:hover:not(:disabled){border-color:var(--pos)}
+.cand.out{opacity:.55;text-decoration:line-through}
+.cand.out small{text-decoration:none}
+.cand.hit{border-color:var(--ok);background:var(--ok-soft);opacity:1}
+.cand.hit small{color:var(--ok);font-weight:600}
+.cand.secret{box-shadow:0 0 0 2px var(--target)}
+.cand.cur{border-color:var(--pos);border-width:2px}
+.cand:disabled{cursor:default}
+.note{font-size:.8rem;color:var(--muted);margin:10px 0 0}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Classical Oracle Search</h1>
+    <p class="sub">A box hides one 3-bit value, one of the 8 values from 000 to 111. You cannot open the box. You can only ask it about one candidate at a time, and it answers 1 if the candidate is the hidden value and 0 otherwise. In code this box is a function that returns true or false. Here the same function is built from logic gates, the way quantum algorithms build their oracles. Every query adds one block to the circuit: write the candidate onto 3 input bits, ask the oracle, and copy the candidate into a result register only if the oracle said 1. There is no clock and no loop. <strong>Each query is a separate copy of the oracle in the circuit, so the number of oracle boxes is the cost of the search.</strong> Searching one candidate at a time takes up to 8 queries for 8 values. Build the search step by step until the result register reveals the hidden value, and open the oracle whenever you want to see how <span class="mono">x == hidden</span> becomes gates.</p>
+  </header>
+
+  <details class="panel manual" open>
+    <summary>How to use this page</summary>
+    <ol>
+      <li>Press <span class="chip">Try next untested</span>, or set the 3 candidate bits yourself and press <span class="chip">Add query</span>.</li>
+      <li>Each query adds one block to the circuit: <b>set candidate → oracle → copy if found</b>.</li>
+      <li>Keep adding queries until the oracle answers <b>1</b>. The result register then shows the hidden value.</li>
+      <li>Turn on <span class="chip">Show inside the oracle</span> to see the gates behind <span class="mono">x == hidden</span>.</li>
+    </ol>
+    <ul class="tips">
+      <li>The highlighted button marked <b>← next</b> is a good next step.</li>
+      <li>Click a value in the candidates list to load it into the candidate bits.</li>
+      <li><span class="chip">◀ Back</span> and <span class="chip">Forward ▶</span> (or the ← → keys) step through the queries. <span class="chip">New hidden value</span> starts a fresh search.</li>
+      <li><span class="chip">Set hidden value</span> lets you choose the hidden value yourself, for example to set a search for someone else. The choice is not left on screen and the oracle closes.</li>
+    </ul>
+  </details>
+
+  <section class="panel controls" aria-label="Controls">
+    <div>
+      <p class="label">Candidate to test</p>
+      <div class="bits" id="bits"></div>
+      <p class="hint">Click a bit to flip it. These are the values the next query writes onto x2 x1 x0.</p>
+    </div>
+    <div>
+      <p class="label">Build the search</p>
+      <div class="ops">
+        <button class="op" id="bAdd"><b>Add query</b><span id="bAddSub">Test 000</span></button>
+        <button class="op" id="bNext"><b>Try next untested</b><span id="bNextSub">Test 000</span></button>
+        <button class="op quiet" id="bNew"><b>New hidden value</b><span>Random, fresh search</span></button>
+        <label class="op quiet op-select" for="setHidden"><b>Set hidden value</b>
+          <select id="setHidden" aria-label="Set hidden value">
+            <option value="">Choose…</option>
+            <option value="0">000</option><option value="1">001</option><option value="2">010</option><option value="3">011</option>
+            <option value="4">100</option><option value="5">101</option><option value="6">110</option><option value="7">111</option>
+          </select>
+        </label>
+        <button class="op quiet" id="bR"><b>Reset</b><span>Clear the queries</span></button>
+      </div>
+      <button class="switch" id="bShow" aria-pressed="false"><span class="track"></span>Show inside the oracle</button>
+      <div class="stepper">
+        <button class="step-btn" id="bB" aria-label="Step back"><span aria-hidden="true">◀</span> Back</button>
+        <span class="step-pos" id="stepPos">Query 0 of 0</span>
+        <button class="step-btn" id="bF" aria-label="Step forward">Forward <span aria-hidden="true">▶</span></button>
+        <span class="step-keys">or use ← → keys</span>
+      </div>
+      <p class="guide" id="guide"></p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Search circuit">
+    <p class="label">Search circuit · one block per query</p>
+    <div class="circ-scroll" id="circScroll"><svg id="circuit" class="qc" role="img" aria-label="Classical search circuit"></svg></div>
+    <div class="legend">
+      <span><span class="lg not">NOT</span>flips a bit</span>
+      <span><span class="lg orc">?</span>oracle, closed box</span>
+      <span><svg width="26" height="18" aria-hidden="true"><line x1="13" y1="4" x2="13" y2="13" style="stroke:var(--ink);stroke-width:1.6"/><circle cx="13" cy="4" r="3.5" style="fill:var(--ink)"/><circle cx="13" cy="13" r="4.5" style="fill:none;stroke:var(--ink);stroke-width:1.6"/><line x1="8.5" y1="13" x2="17.5" y2="13" style="stroke:var(--ink);stroke-width:1.6"/></svg>AND gate: flips the ⊕ bit only when every dotted bit is 1</span>
+      <span><span class="mono" style="font-size:.7rem">0</span>&nbsp;each block starts with fresh bits at 0</span>
+    </div>
+  </section>
+
+  <div class="lower">
+    <section class="panel" aria-label="The same search in code">
+      <p class="label">The same search in code</p>
+      <p class="code-cap">The oracle as a function:</p>
+      <pre class="code" id="codeOracle"></pre>
+      <p class="code-cap">The same check, written bit by bit. Each <span class="mono">not</span> is a NOT gate and the <span class="mono">and</span> is the AND gate:</p>
+      <pre class="code" id="codeBits"></pre>
+      <p class="code-cap">The search loop. Each pass through the loop is one block in the circuit:</p>
+      <pre class="code" id="codeLoop"></pre>
+      <p class="code-cap">Your queries so far:</p>
+      <pre class="code log" id="codeLog"></pre>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-label="Oracle">
+        <p class="label">One oracle, up close</p>
+        <div class="circ-scroll"><svg id="oracleSvg" class="qc" role="img" aria-label="Oracle circuit"></svg></div>
+        <p class="note" id="oracleNote"></p>
+      </section>
+      <section class="panel" aria-label="Result">
+        <p class="label">Result</p>
+        <div class="result-row">
+          <div class="stat"><span class="d">Result register</span><span class="v res" id="sRes">???</span></div>
+          <div class="stat"><span class="d">Queries used</span><span class="v" id="sQ">0</span></div>
+          <div class="stat"><span class="d">Ruled out</span><span class="v" id="sOut">0</span></div>
+        </div>
+        <div class="cands" id="cands"></div>
+        <p class="note" id="resNote"></p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const NB = 3, NV = 8;
+  let hidden = Math.floor(Math.random()*NV);
+  let cand = 0;
+  let ops = [], future = [];       // each op: candidate value queried
+  let show = false;
+  const $ = id => document.getElementById(id);
+  const bin = v => v.toString(2).padStart(NB,'0');
+  const found = () => ops.some(c=>c===hidden);
+  const tested = () => new Set(ops);
+  const nextUntested = () => { const t=tested(); for(let v=0;v<NV;v++) if(!t.has(v)) return v; return null; };
+
+  // ---------- static DOM ----------
+  const bitsEl = $('bits');
+  for(let q=NB-1;q>=0;q--){
+    const w=document.createElement('div'); w.className='bit';
+    const b=document.createElement('button'); b.id='bit'+q; b.setAttribute('aria-label','Candidate bit x'+q);
+    b.addEventListener('click',()=>{ cand ^= (1<<q); render(); });
+    const s=document.createElement('small'); s.textContent='x'+q;
+    w.append(b,s); bitsEl.append(w);
+  }
+  const cv=document.createElement('span'); cv.className='cand-val'; cv.id='candVal'; bitsEl.append(cv);
+  const candsEl=$('cands'), candBtns=[];
+  for(let v=0;v<NV;v++){
+    const b=document.createElement('button'); b.className='cand';
+    b.innerHTML='<b>'+bin(v)+'</b><small></small>';
+    b.addEventListener('click',()=>{ cand=v; render(); });
+    candsEl.append(b); candBtns.push(b);
+  }
+
+  // ---------- render ----------
+  function render(){
+    const f = found(), t = tested();
+    for(let q=0;q<NB;q++){ $('bit'+q).textContent=(cand>>q)&1; $('bit'+q).disabled=f; }
+    $('candVal').textContent = '= '+cand;
+    $('bAddSub').textContent = 'Test '+bin(cand)+(t.has(cand)?' again':'');
+    const nu = nextUntested();
+    $('bNextSub').textContent = nu===null ? 'none left' : 'Test '+bin(nu);
+    $('bAdd').disabled = f; $('bNext').disabled = f || nu===null;
+    $('bB').disabled = ops.length===0; $('bF').disabled = future.length===0;
+    $('bR').disabled = ops.length===0 && future.length===0;
+    $('bShow').setAttribute('aria-pressed', show);
+    $('stepPos').textContent = 'Query '+ops.length+' of '+(ops.length+future.length);
+    ['bAdd','bNext'].forEach(id=>$(id).classList.remove('suggest'));
+    if(!f && !future.length) $('bNext').classList.add('suggest');
+
+    // stats
+    $('sQ').textContent = ops.length;
+    const out = [...t].filter(v=>v!==hidden).length;
+    $('sOut').textContent = out + ' of 8';
+    const res = $('sRes');
+    res.textContent = f ? bin(hidden) : '000';
+    res.classList.toggle('found', f);
+    candBtns.forEach((b,v)=>{
+      b.className='cand'+(t.has(v)&&v!==hidden?' out':'')+(t.has(v)&&v===hidden?' hit':'')+(show?(v===hidden?' secret':''):'')+(v===cand&&!f?' cur':'');
+      b.querySelector('small').textContent = t.has(v) ? (v===hidden?'found':'ruled out') : (show&&v===hidden?'hidden':'untested');
+      b.disabled = f;
+    });
+    $('resNote').innerHTML = f
+      ? 'The copy gates in query '+(ops.indexOf(hidden)+1)+' wrote <b class="mono">'+bin(hidden)+'</b> into the result register. Found with <b>'+ops.length+'</b> '+(ops.length===1?'query':'queries')+'.'
+      : 'The result register stays at 000 until a query finds the hidden value. Searching one candidate at a time needs up to 8 queries.';
+
+    guide(f, t);
+    renderCode(f);
+    renderCircuit();
+    renderOracle();
+  }
+
+  function guide(f, t){
+    const g=$('guide');
+    if(future.length){ g.innerHTML='You are replaying the search. Press <strong>Forward</strong> for the next query, or add a new one to replace the faded blocks.'; return; }
+    if(f){ g.innerHTML='The oracle said <strong>1</strong> for '+bin(hidden)+'. The copy gates wrote it into the result register. Press <strong>New hidden value</strong> to search again.'; return; }
+    if(!ops.length){
+      g.innerHTML=(justSet?'Hidden value set and the oracle is closed. ':'')+'Pick a candidate and press <strong>Add query</strong>, or press <strong>Try next untested</strong>.';
+      justSet=false; return;
+    }
+    const last = ops[ops.length-1];
+    const dup = ops.slice(0,-1).includes(last);
+    if(dup){ g.innerHTML='You already tested '+bin(last)+', so that query told you nothing new but still cost one oracle. <strong>Try an untested value.</strong>'; return; }
+    const left = NV - t.size;
+    g.innerHTML = 'The oracle said <strong>0</strong> for '+bin(last)+', so it is ruled out. '+left+' '+(left===1?'value is':'values are')+' left. '+
+      (left===1 ? 'You can already guess the last one, but the circuit only reveals it when the oracle fires: <strong>add one more query</strong>.' : '<strong>Add another query.</strong>');
+  }
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function renderCode(f){
+    const lit = show ? '<span class="lit">0b'+bin(hidden)+'</span>' : '<span class="lit">0b???</span>';
+    $('codeOracle').innerHTML =
+      'HIDDEN = '+lit+'   <span class="cm"># '+(show?'shown':'hidden inside the box')+'</span>\n\n'+
+      '<span class="kw">def</span> oracle(x):\n    <span class="kw">return</span> x == HIDDEN';
+    let line;
+    if(show){
+      const parts=[2,1,0].map(q=> ((hidden>>q)&1) ? 'x'+q : '<span class="no">not</span> x'+q);
+      line = '<span class="kw">return</span> '+parts.join(' <span class="kw">and</span> ');
+    } else line = '<span class="kw">return</span> (x2 == ?) <span class="kw">and</span> (x1 == ?) <span class="kw">and</span> (x0 == ?)';
+    $('codeBits').innerHTML = '<span class="kw">def</span> oracle(x2, x1, x0):\n    '+line;
+    $('codeLoop').innerHTML =
+      'result = <span class="lit">0b000</span>\n'+
+      '<span class="kw">for</span> x <span class="kw">in</span> candidates:\n'+
+      '    <span class="kw">if</span> oracle(x):    <span class="cm"># the oracle box</span>\n'+
+      '        result = x   <span class="cm"># the copy gates</span>\n'+
+      '        <span class="kw">break</span>';
+    $('codeLog').innerHTML = ops.length
+      ? ops.map((c,i)=>'oracle(<span class="lit">0b'+bin(c)+'</span>)  <span class="cm"># query '+(i+1)+' →</span> '+(c===hidden?'<span class="yes">True</span>  <span class="cm">result = 0b'+bin(c)+'</span>':'<span class="no">False</span>')).join('\n')
+      : '<span class="cm"># no queries yet</span>';
+    const lg=$('codeLog'); lg.scrollTop = lg.scrollHeight;
+  }
+
+  // ---------- svg helpers ----------
+  const NS='http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){
+    const e=document.createElementNS(NS,tag);
+    for(const k in attrs) e.setAttribute(k,attrs[k]);
+    if(text!==undefined) e.textContent=text;
+    return e;
+  }
+  function notBox(g,cx,y){
+    g.append(el('rect',{x:cx-14,y:y-11,width:28,height:22,rx:4,class:'c-gate c-not'}));
+    g.append(el('text',{x:cx,y:y,class:'c-txt'},'NOT'));
+  }
+  function dot(g,cx,y){ g.append(el('circle',{cx,cy:y,r:4.5,class:'c-dot'})); }
+  function vline(g,cx,y1,y2){ g.append(el('line',{x1:cx,y1,x2:cx,y2,class:'c-ctl'})); }
+  function oplus(g,cx,y){
+    g.append(el('circle',{cx,cy:y,r:8,class:'c-ctl',style:'fill:var(--surface)'}));
+    g.append(el('line',{x1:cx-8,y1:y,x2:cx+8,y2:y,class:'c-ctl'}));
+    g.append(el('line',{x1:cx,y1:y-8,x2:cx,y2:y+8,class:'c-ctl'}));
+  }
+  function bracket(svg,a,b,y,text,hit){
+    svg.append(el('path',{d:`M${a} ${y+6} v-6 H${b} v6`,class:'c-brk'}));
+    svg.append(el('text',{x:(a+b)/2,y:y-6,class:'c-iter'+(hit?' hit':'')},text));
+  }
+  // draws the oracle (closed or open) into g, returns width used
+  function drawOracle(g, x, Y, closed){
+    if(closed){
+      const w=64, top=Y.x2-14, bot=Y.f+14;
+      g.append(el('rect',{x,y:top,width:w,height:bot-top,rx:6,class:'c-gate c-orc'}));
+      g.append(el('text',{x:x+w/2,y:(top+bot)/2-6,class:'c-big'},'Oracle'));
+      g.append(el('text',{x:x+w/2,y:(top+bot)/2+12,class:'c-small'},'x == ?'));
+      return w;
+    }
+    const CW=32, zeros=[2,1,0].filter(q=>!((hidden>>q)&1));
+    const top=Y.x2-17, bot=Y.f+15, w=3*CW+8;
+    g.append(el('rect',{x,y:top,width:w,height:bot-top,rx:6,class:'c-orc-open'}));
+    const c1=x+4+CW/2, c2=c1+CW, c3=c2+CW;
+    zeros.forEach(q=>{ notBox(g,c1,Y['x'+q]); notBox(g,c3,Y['x'+q]); });
+    vline(g,c2,Y.x2,Y.f); [2,1,0].forEach(q=>dot(g,c2,Y['x'+q])); oplus(g,c2,Y.f);
+    return w;
+  }
+
+  // ---------- main circuit ----------
+  function renderCircuit(){
+    const svg=$('circuit'); svg.innerHTML='';
+    const Y={x2:50,x1:78,x0:106,f:134,r2:180,r1:206,r0:232};
+    const x0=56, BGAP=26;
+    const full=ops.concat(future);
+    let x=x0+16, cursorX=x0+4;
+    const blocks=[];
+    full.forEach((c,i)=>{
+      const b={c,i,start:x};
+      x+=14;                            // room for fresh 0 labels
+      b.setX=x; x+=34;                  // set candidate column
+      b.orcX=x+4; x+= (show? 3*32+8 : 64) + 12;
+      b.copyX=x; x+=3*30;               // three copy gates
+      b.end=x+6;
+      blocks.push(b);
+      if(i===ops.length-1) cursorX=b.end+BGAP/2;
+      x=b.end+BGAP;
+    });
+    if(!ops.length) cursorX = x0+10;
+    const width=Math.max(x+70,420), height=Y.r0+26;
+    svg.setAttribute('width',width); svg.setAttribute('height',height); svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+    // labels and result wires
+    ['x2','x1','x0','f','r2','r1','r0'].forEach(n=>svg.append(el('text',{x:4,y:Y[n]+4,class:'c-lab'},n)));
+    svg.append(el('text',{x:4,y:Y.x2-24,class:'c-reg'},'per query'));
+    svg.append(el('text',{x:4,y:Y.r2-18,class:'c-reg'},'result'));
+    ['r2','r1','r0'].forEach(n=>{
+      svg.append(el('text',{x:x0-4,y:Y[n]+4,class:'c-zero'},'0'));
+      svg.append(el('line',{x1:x0,y1:Y[n],x2:width-40,y2:Y[n],class:'c-wire'}));
+    });
+    if(!full.length){
+      ['x2','x1','x0','f'].forEach(n=>svg.append(el('line',{x1:x0,y1:Y[n],x2:width-40,y2:Y[n],class:'c-wire',style:'stroke-dasharray:3 4;opacity:.5'})));
+      svg.append(el('text',{x:x0+20,y:24,class:'c-empty'},'No queries yet. Each query adds a block here.'));
+    }
+    // result values at right end
+    const f = found(), rv = f ? hidden : 0;
+    [['r2',2],['r1',1],['r0',0]].forEach(([n,q])=>svg.append(el('text',{x:width-32,y:Y[n]+5,class:'c-out',style:f?'fill:var(--ok)':''},(rv>>q)&1)));
+
+    blocks.forEach(b=>{
+      const g=el('g',{class: b.i>=ops.length?'ghost':(b.i===ops.length-1?'fresh':'')});
+      const hit = b.c===hidden;
+      if(hit && b.i<ops.length) g.append(el('rect',{x:b.start-6,y:Y.x2-22,width:b.end-b.start+12,height:Y.r0-Y.x2+40,rx:8,class:'c-hitbox'}));
+      // per-query wires with fresh zeros
+      ['x2','x1','x0','f'].forEach(n=>{
+        g.append(el('text',{x:b.start+10,y:Y[n]+4,class:'c-zero'},'0'));
+        g.append(el('line',{x1:b.start+12,y1:Y[n],x2:b.end,y2:Y[n],class:'c-wire'}));
+      });
+      // set candidate
+      const sc=b.setX+17;
+      [2,1,0].forEach(q=>{ if((b.c>>q)&1) notBox(g,sc,Y['x'+q]); });
+      if(b.c===0) g.append(el('text',{x:sc,y:Y.x1+4,class:'c-small'},'keep'));
+      // oracle
+      drawOracle(g,b.orcX,Y,!show);
+      // f badge
+      const fx = b.copyX-6;
+      g.append(el('text',{x:fx,y:Y.f-6,class:'c-badge '+(hit?'one':'zero'),style:'text-anchor:end'},hit?'1':'0'));
+      // copy gates: f AND x_q -> r_q
+      [2,1,0].forEach((q,k)=>{
+        const cx=b.copyX+15+k*30;
+        vline(g,cx,Y['x'+q],Y['r'+q]);
+        dot(g,cx,Y['x'+q]); dot(g,cx,Y.f); oplus(g,cx,Y['r'+q]);
+      });
+      svg.append(g);
+      bracket(svg,b.start,b.end,22,'Query '+(b.i+1)+' · '+bin(b.c),hit&&b.i<ops.length);
+    });
+    if(future.length) svg.append(el('line',{x1:cursorX,y1:Y.x2-18,x2:cursorX,y2:Y.r0+14,class:'c-cursor'}));
+    const scr=$('circScroll'); requestAnimationFrame(()=>{ scr.scrollLeft = future.length ? Math.max(0,cursorX-scr.clientWidth/2) : scr.scrollWidth; });
+  }
+
+  // ---------- single oracle ----------
+  function renderOracle(){
+    const svg=$('oracleSvg'); svg.innerHTML='';
+    const Y={x2:34,x1:66,x0:98,f:130};
+    const x0=64, ox=x0+30;
+    const ow = show ? 3*32+8 : 64;
+    const width = ox+ow+90, height=Y.f+26;
+    svg.setAttribute('width',width); svg.setAttribute('height',height); svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+    const inBits = {x2:(cand>>2)&1, x1:(cand>>1)&1, x0:cand&1, f:0};
+    const out = cand===hidden ? 1 : 0;
+    ['x2','x1','x0','f'].forEach(n=>{
+      svg.append(el('text',{x:4,y:Y[n]+4,class:'c-lab'},n));
+      svg.append(el('text',{x:x0-6,y:Y[n]+5,class:'c-out',style:'text-anchor:end'},inBits[n]));
+      svg.append(el('line',{x1:x0,y1:Y[n],x2:width-34,y2:Y[n],class:'c-wire'}));
+      const ov = n==='f' ? out : inBits[n];
+      svg.append(el('text',{x:width-28,y:Y[n]+5,class:'c-out',style:n==='f'?(out?'fill:var(--ok)':'fill:var(--muted)'):''},ov));
+    });
+    const g=el('g',{}); drawOracle(g,ox,Y,!show); svg.append(g);
+    $('oracleNote').innerHTML = (show
+      ? 'NOT gates sit on the bits where the hidden value has a 0 ('+([2,1,0].filter(q=>!((hidden>>q)&1)).map(q=>'x'+q).join(', ')||'none')+'). Then all three bits are 1 only for the hidden value, so the AND gate flips f. The second NOTs put x back the way it was.'
+      : 'The box is closed. You only see what goes in and what comes out.')
+      + ' Showing candidate <b class="mono">'+bin(cand)+'</b>: f = <b>'+out+'</b>.';
+  }
+
+  // ---------- actions ----------
+  function addQuery(v){ if(found()) return; future=[]; ops.push(v); cand=v; render(); }
+  $('bAdd').onclick=()=>addQuery(cand);
+  $('bNext').onclick=()=>{ const v=nextUntested(); if(v!==null) addQuery(v); };
+  $('bNew').onclick=()=>{ let h; do{ h=Math.floor(Math.random()*NV); }while(h===hidden); hidden=h; ops=[]; future=[]; cand=0; render(); };
+  $('bR').onclick=()=>{ ops=[]; future=[]; cand=0; render(); };
+  let justSet = false;
+  $('setHidden').addEventListener('change',e=>{
+    const v = e.target.value; if(v==='') return;
+    hidden = +v; ops=[]; future=[]; cand=0; show=false; justSet=true;
+    e.target.value='';
+    render();
+  });
+  $('bShow').onclick=()=>{ show=!show; render(); };
+  $('bB').onclick=()=>{ if(!ops.length) return; future.unshift(ops.pop()); render(); };
+  $('bF').onclick=()=>{ if(!future.length) return; ops.push(future.shift()); render(); };
+  document.addEventListener('keydown',e=>{
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    if(e.key==='ArrowLeft' && !$('bB').disabled){ e.preventDefault(); $('bB').click(); }
+    if(e.key==='ArrowRight' && !$('bF').disabled){ e.preventDefault(); $('bF').click(); }
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
