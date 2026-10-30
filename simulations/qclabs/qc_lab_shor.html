@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shor Factoring Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: same instrument column as Grover Search Lab — controls, growing circuit, then the joint state grid with register bars beside it, classical finish, gate-level circuits */
+:root{
+  --bg:#F1F4F6; --surface:#FFFFFF; --ink:#13202B; --muted:#5A6875;
+  --line:#D6DDE3; --line-strong:#9AA8B4;
+  --pos:#1D6C8A; --neg:#BF463A; --target:#C97C16; --target-soft:rgba(201,124,22,.12);
+  --pos-soft:rgba(29,108,138,.10); --ok:#2E7D4F; --ok-soft:rgba(46,125,79,.12);
+  --cell-empty:#ECF0F3; --cell-l:44%;
+  --display:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1318; --surface:#141C23; --ink:#E3EAF0; --muted:#8E9CA9;
+  --line:#26323D; --line-strong:#4A5A68;
+  --pos:#53B4D6; --neg:#EF7B6D; --target:#F0A445; --target-soft:rgba(240,164,69,.14);
+  --pos-soft:rgba(83,180,214,.12); --ok:#5CC48A; --ok-soft:rgba(92,196,138,.13);
+  --cell-empty:#19232C; --cell-l:62%; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1318; --surface:#141C23; --ink:#E3EAF0; --muted:#8E9CA9;
+  --line:#26323D; --line-strong:#4A5A68;
+  --pos:#53B4D6; --neg:#EF7B6D; --target:#F0A445; --target-soft:rgba(240,164,69,.14);
+  --pos-soft:rgba(83,180,214,.12); --ok:#5CC48A; --ok-soft:rgba(92,196,138,.13);
+  --cell-empty:#19232C; --cell-l:62%; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:10px 0 0;max-width:78ch;line-height:1.6}
+.sub strong{color:var(--ink);font-weight:600}
+.ket{font-family:var(--mono);font-weight:500}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.label{font-family:var(--display);font-weight:600;font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+
+/* manual */
+.manual summary{font-family:var(--display);font-weight:600;font-size:1.05rem;cursor:pointer}
+.manual ol{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.manual ol li::marker{font-family:var(--display);font-weight:700;color:var(--pos)}
+.manual b{font-weight:600}
+.tips{margin:12px 0 0;padding:10px 0 0 18px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.tips b{color:var(--pos)}
+.chip{display:inline-block;font-family:var(--display);font-weight:600;font-size:.82em;padding:1px 8px;border-radius:5px;border:1px solid var(--line-strong);background:var(--bg);color:var(--ink);white-space:nowrap}
+
+/* controls */
+.controls{display:grid;grid-template-columns:auto 1fr;gap:16px 28px;align-items:start}
+@media (max-width:760px){.controls{grid-template-columns:1fr}}
+.achoice{display:flex;flex-wrap:wrap;gap:6px;max-width:240px}
+.achoice button{width:44px;height:40px;border-radius:6px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  font-family:var(--mono);font-size:1.05rem;font-weight:600;cursor:pointer}
+.achoice button:hover{border-color:var(--target)}
+.achoice button[aria-pressed="true"]{border-color:var(--target);background:var(--target);color:var(--surface)}
+.hint{font-size:.78rem;color:var(--muted);margin:8px 0 0;max-width:30ch}
+.ops{display:flex;flex-wrap:wrap;gap:8px}
+.op{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:118px;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left;font:inherit;
+  transition:border-color .15s,background .15s,box-shadow .15s}
+.op b{font-family:var(--display);font-weight:600;font-size:1rem}
+.op span{font-size:.74rem;color:var(--muted)}
+.op:hover:not(:disabled){border-color:var(--pos);background:var(--pos-soft)}
+.op.suggest{border-color:var(--pos);background:var(--pos-soft);box-shadow:0 0 0 3px var(--pos-soft)}
+.op.suggest b,.op.suggest span{color:var(--pos)}
+.op.suggest b::after{content:" ← next";font-family:var(--body);font-weight:500;font-size:.7rem;color:var(--pos)}
+.op.quiet{min-width:0;border-style:dashed}
+.op:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
+.stepper{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.step-btn{font:inherit;font-family:var(--display);font-weight:600;font-size:.95rem;padding:7px 14px;border-radius:999px;
+  border:1px solid var(--pos);background:var(--pos-soft);color:var(--pos);cursor:pointer}
+.step-btn:hover:not(:disabled){background:var(--pos);color:var(--surface)}
+.step-btn:disabled{opacity:.35;cursor:not-allowed}
+.step-pos{font-family:var(--mono);font-size:.85rem;font-variant-numeric:tabular-nums;min-width:11ch;text-align:center}
+.step-keys{font-size:.75rem;color:var(--muted)}
+.guide{margin:12px 0 0;font-size:.9rem;min-height:1.5em}
+.guide strong{color:var(--pos);font-weight:600}
+
+/* circuits */
+.circ-scroll{overflow-x:auto;padding-bottom:4px;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){.circ-scroll{scroll-behavior:auto}}
+.qc text{font-family:var(--mono);fill:var(--ink)}
+.c-wire{stroke:var(--line-strong);stroke-width:1.4}
+.c-lab{font-size:12px;fill:var(--muted)!important}
+.c-reg{font-size:9.5px;fill:var(--muted)!important;font-family:var(--display)!important;letter-spacing:.08em;text-transform:uppercase}
+.c-gate{fill:var(--surface);stroke:var(--ink);stroke-width:1.3}
+.c-H{fill:var(--pos-soft);stroke:var(--pos)}
+.c-U{fill:var(--target-soft);stroke:var(--target)}
+.c-Q{fill:var(--pos-soft);stroke:var(--pos)}
+.c-M{fill:var(--surface);stroke:var(--muted)}
+.c-txt{font-size:13px;font-weight:600;text-anchor:middle;dominant-baseline:central}
+.c-big{font-family:var(--display)!important;font-size:13px;font-weight:600}
+.c-small{font-size:9.5px;fill:var(--muted)!important;text-anchor:middle}
+.c-brk{stroke:var(--muted);stroke-width:1;fill:none}
+.c-iter{font-size:10px;fill:var(--muted)!important;text-anchor:middle;font-family:var(--display)!important;letter-spacing:.06em;text-transform:uppercase}
+.c-dot{fill:var(--ink)}
+.c-ctl{stroke:var(--ink);stroke-width:1.6;fill:none}
+.c-col-lab{font-size:9.5px;fill:var(--muted)!important;text-anchor:middle;font-family:var(--body)!important}
+.c-empty{font-size:12px;fill:var(--muted)!important;font-family:var(--body)!important}
+.fresh .c-gate{stroke-width:2.4}
+.ghost{opacity:.28}
+.c-cursor{stroke:var(--pos);stroke-width:2;stroke-dasharray:4 3}
+
+/* state views */
+.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+.cap{font-size:.8rem;color:var(--muted);margin:0 0 10px}
+.jgrid{display:grid;grid-template-columns:26px repeat(16,minmax(0,1fr));gap:2px;max-width:560px}
+.jgrid .cell{aspect-ratio:1;border-radius:2px;background:var(--cell-empty);transition:background-color .55s;cursor:crosshair}
+.jgrid .cell:hover{outline:2px solid var(--ink);outline-offset:-1px}
+.jgrid .hd,.jgrid .rl{font-family:var(--mono);font-size:.6rem;color:var(--muted);line-height:1}
+.jgrid .hd{text-align:center;align-self:end;padding-bottom:3px}
+.jgrid .rl{text-align:right;align-self:center;padding-right:5px}
+.axis-t{display:flex;justify-content:space-between;max-width:560px;font-family:var(--display);font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;padding-left:26px}
+@media (prefers-reduced-motion:reduce){.jgrid .cell{transition:none}}
+.phase-leg{display:flex;flex-wrap:wrap;gap:12px;font-size:.76rem;color:var(--muted);margin-top:10px}
+.phase-leg i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.readout{margin-top:10px;font-family:var(--mono);font-size:.8rem;color:var(--muted);min-height:2.8em}
+.readout b{color:var(--ink);font-weight:600}
+
+.bars{position:relative;height:190px;padding-left:36px;margin-top:4px}
+.bars.small{height:120px}
+.gl{position:absolute;left:36px;right:0;height:0;border-top:1px solid var(--line)}
+.gl.base{border-top-color:var(--line-strong)}
+.gl span{position:absolute;left:-36px;top:-8px;width:30px;text-align:right;font-family:var(--mono);font-size:.64rem;color:var(--muted)}
+.bcols{position:absolute;inset:0 0 0 36px;display:grid;grid-template-columns:repeat(16,1fr)}
+.bcol{position:relative;border-radius:3px;cursor:crosshair}
+.bcol:hover{background:var(--pos-soft)}
+.bar{position:absolute;left:16%;right:16%;bottom:0;height:100%;transform-origin:50% 100%;background:var(--pos);border-radius:2px 2px 0 0;
+  transform:scaleY(0);transition:transform .6s cubic-bezier(.3,.7,.2,1)}
+.work .bar{background:var(--target)}
+@media (prefers-reduced-motion:reduce){.bar{transition:none}}
+.bx{display:grid;grid-template-columns:repeat(16,1fr);margin-left:36px;margin-top:5px}
+.bx div{text-align:center;font-family:var(--mono);font-size:.62rem;color:var(--muted)}
+.bnote{font-size:.8rem;color:var(--muted);margin:8px 0 0;min-height:1.3em}
+.bnote b{color:var(--ink);font-weight:600}
+
+/* classical */
+.classic{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.classic{grid-template-columns:1fr}}
+.steps-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:.86rem}
+.steps-list li{padding:6px 10px;border-radius:6px;background:var(--bg)}
+.steps-list .ok{color:var(--ok)}
+.steps-list .bad{color:var(--neg)}
+.verdict{margin-top:12px;padding:12px 14px;border-radius:8px;border:1px solid var(--line-strong)}
+.verdict.win{border-color:var(--ok);background:var(--ok-soft)}
+.verdict.fail{border-color:var(--neg)}
+.verdict .big{font-family:var(--display);font-weight:700;font-size:2rem;line-height:1.1}
+.verdict p{margin:4px 0 0;font-size:.88rem}
+.seq{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:4px}
+.seq div{display:flex;flex-direction:column;align-items:center;padding:5px 0;border-radius:5px;background:var(--bg);font-family:var(--mono)}
+.seq div small{font-size:.6rem;color:var(--muted)}
+.seq div b{font-size:.95rem;font-weight:600}
+.seq div.cyc{background:var(--target-soft);box-shadow:inset 0 0 0 1px var(--target)}
+.note{font-size:.8rem;color:var(--muted);margin:10px 0 0}
+
+/* gate-level */
+.decomp{display:flex;flex-direction:column;gap:18px}
+.decomp h2{font-family:var(--display);font-weight:600;font-size:1.25rem;margin:0 0 4px}
+.decomp ul{margin:10px 0 0;padding-left:18px;font-size:.86rem;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.decomp ul b{color:var(--ink);font-weight:600}
+.decomp-scroll{overflow-x:auto;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Shor Factoring Lab</h1>
+    <p class="sub">Every whole number splits into prime factors, for example 15 = 3 × 5. For small numbers this is easy, but for numbers with hundreds of digits the best known classical methods take far too long to be practical. That difficulty is what keeps RSA encryption safe. Shor's algorithm turns factoring into a different question. Pick a number a, list a, a², a³, … and keep only the remainder after dividing by N. The list starts repeating, and the length of one repeat is called the <strong>period r</strong>. Once r is known, a few lines of classical arithmetic give the factors. Finding r is the hard part, and that is the quantum computer's job: <strong>it computes the sequence for all 16 values of x at once, and the inverse quantum Fourier transform turns the repetition into sharp peaks that one measurement can read</strong>. Its running time grows only polynomially with the number of digits, far slower than the best classical methods. On this page you factor N = 15 with 8 qubits: 4 counting qubits that hold x and 4 work qubits that hold a<sup>x</sup> mod 15. Apply the steps yourself, step back and forward, watch the state change, and see the classical finish turn the measured value into 3 × 5. The gate-level circuits at the bottom show what the multiplications and the inverse QFT are made of.</p>
+  </header>
+
+  <details class="panel manual" open>
+    <summary>How to use this page</summary>
+    <ol>
+      <li><b>Choose a</b> (optional). The default is 7.</li>
+      <li>Press <span class="chip">H on counting</span> once to start.</li>
+      <li>Press <span class="chip">Multiply</span> four times, once per counting qubit. <span class="chip">All multiplies</span> does them in one click.</li>
+      <li><b>Optional:</b> press <span class="chip">Measure work</span> to see the repeating pattern.</li>
+      <li>Press <span class="chip">Inverse QFT</span>.</li>
+      <li>Press <span class="chip">Measure counting</span>.</li>
+      <li>Read the <b>classical finish</b> to get the factors. If the result is not useful, step <span class="chip">◀ Back</span> and measure again.</li>
+    </ol>
+    <ul class="tips">
+      <li>The highlighted button marked <b>← next</b> is always the next step.</li>
+      <li><span class="chip">◀ Back</span> and <span class="chip">Forward ▶</span> (or the ← → keys) step through the gates you applied.</li>
+      <li><span class="chip">Run all</span> plays every step for you. <span class="chip">Reset</span> starts over.</li>
+    </ul>
+  </details>
+
+  <section class="panel controls" aria-label="Controls">
+    <div>
+      <p class="label">Number to factor: N = 15</p>
+      <p class="label" style="margin-top:14px">Choose a</p>
+      <div class="achoice" id="achoice"></div>
+      <p class="hint">Any number from 2 to 14 that shares no factor with 15. Changing a restarts the circuit.</p>
+    </div>
+    <div>
+      <p class="label">Apply an operation</p>
+      <div class="ops">
+        <button class="op" id="bH"><b>H on counting</b><span>All 16 values of x</span></button>
+        <button class="op" id="bU"><b id="bUlab">Multiply ×7</b><span id="bUsub">c0 controls it</span></button>
+        <button class="op" id="bUA"><b>All multiplies</b><span>Remaining ones at once</span></button>
+        <button class="op" id="bMW"><b>Measure work</b><span>Optional, shows the pattern</span></button>
+        <button class="op" id="bQ"><b>Inverse QFT</b><span>Pattern → peaks</span></button>
+        <button class="op" id="bMC"><b>Measure counting</b><span>Read out c</span></button>
+        <button class="op quiet" id="bRun"><b>Run all</b><span>Auto-play every step</span></button>
+        <button class="op quiet" id="bR"><b>Reset</b><span>Clear the circuit</span></button>
+      </div>
+      <div class="stepper">
+        <button class="step-btn" id="bB" aria-label="Step back"><span aria-hidden="true">◀</span> Back</button>
+        <span class="step-pos" id="stepPos">Step 0 of 0</span>
+        <button class="step-btn" id="bF" aria-label="Step forward">Forward <span aria-hidden="true">▶</span></button>
+        <span class="step-keys">or use ← → keys</span>
+      </div>
+      <p class="guide" id="guide"></p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Circuit">
+    <p class="label">Circuit · 4 counting + 4 work qubits</p>
+    <div class="circ-scroll" id="circScroll"><svg id="circuit" class="qc" role="img" aria-label="Quantum circuit"></svg></div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-label="Joint state">
+      <p class="label">Full state of both registers</p>
+      <p class="cap">Each square is one combination of x and y. Brightness shows how likely it is; colour shows its phase.</p>
+      <div class="axis-t"><span>↓ counting x</span><span>work y →</span></div>
+      <div class="jgrid" id="jgrid"></div>
+      <div class="phase-leg" id="phaseLeg"></div>
+      <div class="readout" id="readout">Hover or tap a square or bar to read its value.</div>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-label="Counting register">
+        <p class="label">Counting register x · probability</p>
+        <div class="bars" id="cBars"></div>
+        <div class="bx" id="cX"></div>
+        <p class="bnote" id="cNote"></p>
+      </section>
+      <section class="panel work" aria-label="Work register">
+        <p class="label">Work register y = a<sup>x</sup> mod 15 · probability</p>
+        <div class="bars small" id="wBars"></div>
+        <div class="bx" id="wX"></div>
+        <p class="bnote" id="wNote"></p>
+      </section>
+    </div>
+  </div>
+
+  <div class="classic">
+    <section class="panel" aria-label="Classical finish">
+      <p class="label">Classical finish</p>
+      <ul class="steps-list" id="finish"></ul>
+      <div class="verdict" id="verdict"></div>
+    </section>
+    <section class="panel" aria-label="Sequence">
+      <p class="label">The repeating sequence, for checking</p>
+      <div class="seq" id="seq"></div>
+      <p class="note" id="seqNote"></p>
+    </section>
+  </div>
+
+  <div class="decomp">
+    <section class="panel" aria-label="Multiplication circuits">
+      <p class="label">Inside the controlled multiplications</p>
+      <h2>Multiplications for a = <span id="dA">7</span></h2>
+      <div class="decomp-scroll"><svg id="multSvg" class="qc" role="img" aria-label="Controlled multiplication gate circuit"></svg></div>
+      <ul>
+        <li>For N = 15, <b>multiplying by 2, 4 or 8</b> just rotates the 4 work bits, so it is built from <b>controlled swaps</b>.</li>
+        <li><b>Multiplying by 7, 11, 13 or 14</b> is a rotation followed by flipping all 4 work bits, done with <b>controlled X</b> gates.</li>
+        <li>Each block only acts when its counting qubit is 1. A <b>×1</b> block needs no gates at all.</li>
+      </ul>
+    </section>
+    <section class="panel" aria-label="Inverse QFT circuit">
+      <p class="label">Inside the inverse QFT</p>
+      <h2>Inverse quantum Fourier transform on 4 qubits</h2>
+      <div class="decomp-scroll"><svg id="qftSvg" class="qc" role="img" aria-label="Inverse QFT gate circuit"></svg></div>
+      <ul>
+        <li><b>Swaps</b> first reverse the order of the qubits.</li>
+        <li>Then each qubit gets an <b>H</b> gate, after small <b>controlled phase turns</b> from the qubits handled before it.</li>
+        <li>Together these turn a regular repeating pattern into sharp peaks, a bit like finding the note in a sound wave.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  const N = 15, DX = 16, DY = 16, SIZE = 256;
+  const A_OPTIONS = [2,4,7,8,11,13,14];
+  const STD = ['H','U','U','U','U','MW','QFT','MC'];
+  const STD2 = ['H','U','U','U','U','QFT','MC'];
+  let a = 7;
+  let ops = [], future = [], running = false;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const $ = id => document.getElementById(id);
+  const bin = (v,n) => v.toString(2).padStart(n,'0');
+  const modpow = (b,e,m) => { let r=1; b%=m; while(e>0){ if(e&1) r=r*b%m; b=b*b%m; e>>=1; } return r; };
+  const gcd = (x,y) => { x=Math.abs(x); y=Math.abs(y); while(y){ [x,y]=[y,x%y]; } return x; };
+  const mult = k => modpow(a, 1<<k, N);
+  const order = () => { let r=1; while(modpow(a,r,N)!==1) r++; return r; };
+
+  // ---------- simulation ----------
+  function simulate(list){
+    let re = new Float64Array(SIZE), im = new Float64Array(SIZE);
+    re[0*DY+1] = 1;                           // x = 0, y = 1
+    for(const op of list){
+      if(op.t==='H'){
+        for(let y=0;y<DY;y++)
+          for(let h=1;h<DX;h*=2)
+            for(let i=0;i<DX;i+=2*h)
+              for(let j=i;j<i+h;j++){
+                const p=j*DY+y, q=(j+h)*DY+y;
+                const ar=re[p], ai=im[p], br=re[q], bi=im[q];
+                re[p]=ar+br; im[p]=ai+bi; re[q]=ar-br; im[q]=ai-bi;
+              }
+        for(let i=0;i<SIZE;i++){ re[i]*=0.25; im[i]*=0.25; }
+      } else if(op.t==='U'){
+        const m = mult(op.k);
+        const nr = new Float64Array(SIZE), ni = new Float64Array(SIZE);
+        for(let x=0;x<DX;x++) for(let y=0;y<DY;y++){
+          const y2 = ((x>>op.k)&1) && y<N ? (m*y)%N : y;
+          nr[x*DY+y2] += re[x*DY+y]; ni[x*DY+y2] += im[x*DY+y];
+        }
+        re=nr; im=ni;
+      } else if(op.t==='QFT'){
+        const nr = new Float64Array(SIZE), ni = new Float64Array(SIZE);
+        for(let y=0;y<DY;y++) for(let k=0;k<DX;k++){
+          let sr=0, si=0;
+          for(let x=0;x<DX;x++){
+            const ang = -2*Math.PI*x*k/DX, c=Math.cos(ang), s=Math.sin(ang);
+            const r0=re[x*DY+y], i0=im[x*DY+y];
+            sr += r0*c - i0*s; si += r0*s + i0*c;
+          }
+          nr[k*DY+y]=sr/4; ni[k*DY+y]=si/4;
+        }
+        re=nr; im=ni;
+      } else if(op.t==='MW' || op.t==='MC'){
+        let tot=0;
+        for(let i=0;i<SIZE;i++){
+          const keep = op.t==='MW' ? (i%DY)===op.r : Math.floor(i/DY)===op.r;
+          if(!keep){ re[i]=0; im[i]=0; } else tot += re[i]*re[i]+im[i]*im[i];
+        }
+        const s = tot>0 ? 1/Math.sqrt(tot) : 0;
+        for(let i=0;i<SIZE;i++){ re[i]*=s; im[i]*=s; }
+      }
+    }
+    for(let i=0;i<SIZE;i++){ if(Math.abs(re[i])<1e-10) re[i]=0; if(Math.abs(im[i])<1e-10) im[i]=0; }
+    return {re, im};
+  }
+  const has = t => ops.some(o=>o.t===t);
+  const uCount = () => ops.filter(o=>o.t==='U').length;
+  const isPrefix = seq => ops.every((o,i)=>o.t===seq[i]);
+  function nextStd(){
+    if(isPrefix(STD) && ops.length<STD.length) return STD[ops.length];
+    if(isPrefix(STD2) && ops.length<STD2.length) return STD2[ops.length];
+    return null;
+  }
+
+  // ---------- static DOM ----------
+  const ach = $('achoice');
+  A_OPTIONS.forEach(v=>{
+    const b=document.createElement('button'); b.textContent=v; b.id='a'+v;
+    b.setAttribute('aria-label','Use a = '+v);
+    b.addEventListener('click',()=>{ if(running) return; a=v; ops=[]; future=[]; render(); });
+    ach.append(b);
+  });
+
+  const jg = $('jgrid'), cells = [];
+  jg.append(document.createElement('div'));
+  for(let y=0;y<DY;y++){ const h=document.createElement('div'); h.className='hd'; h.textContent=y; jg.append(h); }
+  for(let x=0;x<DX;x++){
+    const l=document.createElement('div'); l.className='rl'; l.textContent=x; jg.append(l);
+    for(let y=0;y<DY;y++){
+      const c=document.createElement('div'); c.className='cell'; c.dataset.i = x*DY+y;
+      jg.append(c); cells.push(c);
+    }
+  }
+  const PH = [[0,'phase 0°'],[90,'90°'],[180,'180°'],[270,'270°']];
+  function legend(){ $('phaseLeg').innerHTML = PH.map(([d,t])=>`<span><i style="background:${hsl(d,1)}"></i>${t}</span>`).join('') +
+    '<span><i style="background:var(--cell-empty);border:1px solid var(--line)"></i>zero</span>'; }
+
+  function makeBars(id, xid, kind){
+    const box = $(id);
+    [[0,'100%'],[25,'75%'],[50,'50%'],[75,'25%'],[100,'0']].forEach(([t,l])=>{
+      const g=document.createElement('div'); g.className='gl'+(t===100?' base':''); g.style.top=t+'%';
+      g.innerHTML='<span>'+l+'</span>'; box.append(g);
+    });
+    const cols=document.createElement('div'); cols.className='bcols'; box.append(cols);
+    const bars=[];
+    for(let i=0;i<16;i++){
+      const c=document.createElement('div'); c.className='bcol'; c.dataset.k=kind; c.dataset.v=i;
+      const b=document.createElement('div'); b.className='bar'; c.append(b); cols.append(c); bars.push(b);
+      const lx=document.createElement('div'); lx.textContent=i; $(xid).append(lx);
+    }
+    return bars;
+  }
+  const cBars = makeBars('cBars','cX','c'), wBars = makeBars('wBars','wX','w');
+
+  // ---------- colours ----------
+  function hsl(deg, alpha){
+    const L = (getComputedStyle(document.documentElement).getPropertyValue('--cell-l')||'44%').trim();
+    return `hsl(${(195+deg)%360} 68% ${L} / ${alpha})`;
+  }
+
+  // ---------- render ----------
+  let st = simulate([]);
+  let probs = new Float64Array(SIZE), px = new Float64Array(DX), py = new Float64Array(DY);
+  function render(){
+    st = simulate(ops);
+    px.fill(0); py.fill(0);
+    const L = (getComputedStyle(document.documentElement).getPropertyValue('--cell-l')||'44%').trim();
+    for(let i=0;i<SIZE;i++){
+      const p = st.re[i]**2 + st.im[i]**2; probs[i]=p;
+      px[Math.floor(i/DY)] += p; py[i%DY] += p;
+      if(p<1e-10){ cells[i].style.backgroundColor=''; continue; }
+      const deg = ((Math.atan2(st.im[i],st.re[i])*180/Math.PI)+360)%360;
+      const alpha = Math.min(1, .2 + Math.sqrt(p)*1.6);
+      cells[i].style.backgroundColor = `hsl(${(195+deg)%360} 68% ${L} / ${alpha.toFixed(3)})`;
+    }
+    for(let i=0;i<16;i++){
+      cBars[i].style.transform = 'scaleY('+px[i].toFixed(4)+')';
+      wBars[i].style.transform = 'scaleY('+py[i].toFixed(4)+')';
+    }
+    A_OPTIONS.forEach(v=>$('a'+v).setAttribute('aria-pressed', v===a));
+    $('stepPos').textContent = 'Step '+ops.length+' of '+(ops.length+future.length);
+    notes();
+    legend();
+    renderCircuit();
+    renderFinish();
+    renderSeq();
+    renderDecomp();
+    updateButtons();
+  }
+
+  function nonzero(arr){ const o=[]; arr.forEach((p,i)=>{ if(p>1e-9) o.push(i); }); return o; }
+  function notes(){
+    const xs = nonzero(px), ys = nonzero(py);
+    const cn = $('cNote'), wn = $('wNote');
+    if(xs.length===16) cn.innerHTML = 'All 16 values equally likely.';
+    else if(xs.length===1) cn.innerHTML = 'Only x = <b>'+xs[0]+'</b> is possible.';
+    else cn.innerHTML = 'Possible values: <b>'+xs.join(', ')+'</b>'+(spacing(xs)?' (spaced '+spacing(xs)+' apart)':'');
+    wn.innerHTML = ys.length===1 ? 'Holds only y = <b>'+ys[0]+'</b>.' : 'Holds <b>'+ys.join(', ')+'</b> at the same time.';
+  }
+  function spacing(xs){
+    if(xs.length<2) return 0;
+    const d = xs[1]-xs[0];
+    for(let i=2;i<xs.length;i++) if(xs[i]-xs[i-1]!==d) return 0;
+    return d;
+  }
+
+  function readoutCell(i){
+    const x=Math.floor(i/DY), y=i%DY, p=probs[i];
+    const deg = p<1e-10 ? null : Math.round(((Math.atan2(st.im[i],st.re[i])*180/Math.PI)+360)%360)%360;
+    $('readout').innerHTML = 'x = <b>'+x+'</b> ('+bin(x,4)+'), y = <b>'+y+'</b> ('+bin(y,4)+')<br>probability <b>'+(p*100).toFixed(1)+'%</b>'+(deg===null?'':' · phase <b>'+deg+'°</b>');
+  }
+  jg.addEventListener('mouseover',e=>{ const c=e.target.closest('.cell'); if(c) readoutCell(+c.dataset.i); });
+  jg.addEventListener('click',e=>{ const c=e.target.closest('.cell'); if(c) readoutCell(+c.dataset.i); });
+  document.querySelectorAll('.bcols').forEach(el=>{
+    const h = e=>{ const c=e.target.closest('.bcol'); if(!c) return;
+      const v=+c.dataset.v, w=c.dataset.k==='w', p=(w?py:px)[v];
+      $('readout').innerHTML = (w?'work y':'counting x')+' = <b>'+v+'</b> ('+bin(v,4)+')<br>probability <b>'+(p*100).toFixed(1)+'%</b>'; };
+    el.addEventListener('mouseover',h); el.addEventListener('click',h);
+  });
+
+  function updateButtons(){
+    const mc = has('MC'), u = uCount();
+    ['bH','bU','bUA','bMW','bQ','bMC','bRun','bB','bF','bR'].forEach(id=>{ $(id).disabled=running; $(id).classList.remove('suggest'); });
+    A_OPTIONS.forEach(v=>$('a'+v).disabled=running);
+    if(u<4){ $('bUlab').textContent='Multiply ×'+mult(u); $('bUsub').textContent='c'+u+' controls it'; }
+    else { $('bUlab').textContent='Multiply'; $('bUsub').textContent='all 4 done'; }
+    if(!running){
+      $('bH').disabled = mc; $('bQ').disabled = mc; $('bMC').disabled = mc;
+      $('bU').disabled = mc || u>=4; $('bUA').disabled = mc || u>=4;
+      $('bMW').disabled = mc || has('MW');
+      $('bRun').disabled = mc;
+      $('bB').disabled = ops.length===0; $('bF').disabled = future.length===0;
+      $('bR').disabled = ops.length===0 && future.length===0;
+    }
+    const g = $('guide');
+    if(running){ g.textContent='Running…'; return; }
+    if(future.length){ g.innerHTML='You are replaying the circuit. Press <strong>Forward</strong> for the next gate, or apply a new one to replace the faded gates.'; return; }
+    if(mc){ g.innerHTML='Done. Read the <strong>classical finish</strong> below. Step <strong>Back</strong> to measure again, or choose another a.'; return; }
+    const nx = nextStd();
+    const map = {H:'bH',U:'bU',MW:'bMW',QFT:'bQ',MC:'bMC'};
+    if(nx) $(map[nx]).classList.add('suggest');
+    const ys = nonzero(py);
+    if(nx==='H') g.innerHTML='Counting register x is 0 and work register y is 1. <strong>Apply H</strong> to put x into all 16 values at once.';
+    else if(nx==='U'){
+      const m = mult(u);
+      g.innerHTML = m===1
+        ? 'Counting qubit c'+u+' controls <strong>×1</strong>, which changes nothing for N = 15. Apply it anyway to complete the circuit.'
+        : (u===0 ? 'Now compute a<sup>x</sup> mod 15 for all 16 values of x at once. ' : '') + '<strong>Multiply</strong>: counting qubit c'+u+' controls ×'+m+'.';
+    }
+    else if(nx==='MW') g.innerHTML='The work register now holds <strong>'+ys.join(', ')+'</strong>, the repeating sequence. Optional: <strong>measure work</strong> to see the pattern in x, or go straight to the inverse QFT.';
+    else if(nx==='QFT') g.innerHTML='<strong>Apply the inverse QFT</strong>. It turns the repeating pattern in x into sharp peaks.';
+    else if(nx==='MC') g.innerHTML='<strong>Measure the counting register</strong>. The result c reveals the period.';
+    else g.innerHTML='You have left the standard order. Keep exploring, or press <strong>Reset</strong>.';
+  }
+
+  // ---------- classical finish ----------
+  function sup(b,e){ return b+'<sup>'+e+'</sup>'; }
+  function renderFinish(){
+    const f = $('finish'), v = $('verdict');
+    const mc = ops.find(o=>o.t==='MC');
+    if(!mc){
+      f.innerHTML = '<li>Waiting for the counting measurement c.</li>';
+      v.className='verdict'; v.innerHTML='<p>After measuring, this panel turns c into a period guess and then into the factors of 15.</p>';
+      return;
+    }
+    const c = mc.r, lines = [];
+    lines.push(['','Measured c = '+c+' ('+bin(c,4)+')']);
+    const fail = msg => { f.innerHTML = lines.map(([k,t])=>`<li class="${k}">${t}</li>`).join(''); v.className='verdict fail'; v.innerHTML='<div class="big">No factors this time</div><p>'+msg+'</p>'; };
+    if(c===0){ fail('c = 0 says nothing about the period. Step Back and measure again.'); return; }
+    const g = gcd(c,16), p = c/g, q = 16/g;
+    lines.push(['','c / 16 = '+c+'/16 = '+p+'/'+q+' → period guess r = '+q]);
+    let r = null;
+    for(let m=q; m<=16; m+=q){
+      const val = modpow(a,m,N);
+      lines.push([val===1?'ok':'bad','Check r = '+m+': '+sup(a,m)+' mod 15 = '+val+(val===1?' ✓':' ✗, try a multiple')]);
+      if(val===1){ r=m; break; }
+    }
+    if(r===null){ fail('No period found. Step Back and measure again.'); return; }
+    if(r%2){ fail('The period is odd, so this a cannot split 15. Choose another a.'); return; }
+    const h = modpow(a, r/2, N);
+    lines.push(['',sup(a,r/2)+' mod 15 = '+h]);
+    if(h===N-1){ fail(sup(a,r/2)+' mod 15 = 14, which acts like −1 and gives only 1 and 15. This a does not work; choose another.'); return; }
+    const f1 = gcd(h-1,N), f2 = gcd(h+1,N);
+    lines.push(['','gcd('+h+' − 1, 15) = '+f1+' and gcd('+h+' + 1, 15) = '+f2]);
+    const nontriv = [f1,f2].filter(x=>x>1 && x<N);
+    if(!nontriv.length){ fail('Only the trivial factors 1 and 15 came out, so the period guess was wrong. Step Back and measure again.'); return; }
+    const fa = nontriv[0], fb = N/fa;
+    f.innerHTML = lines.map(([k,t])=>`<li class="${k}">${t}</li>`).join('');
+    v.className='verdict win';
+    v.innerHTML='<div class="big">15 = '+Math.min(fa,fb)+' × '+Math.max(fa,fb)+'</div><p>Found from the period r = '+r+'.</p>';
+  }
+
+  function renderSeq(){
+    const r = order();
+    $('seq').innerHTML = Array.from({length:16},(_,x)=>`<div class="${x%r===0?'cyc':''}"><small>x=${x}</small><b>${modpow(a,x,N)}</b></div>`).join('');
+    $('seqNote').innerHTML = sup(a,'x')+' mod 15 for x = 0 to 15. It repeats every <b>r = '+r+'</b> (highlighted starts). A classical computer would have to compute this list to see the period; the quantum computer never writes it out.';
+  }
+
+  // ---------- svg helpers ----------
+  const NS='http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){
+    const e=document.createElementNS(NS,tag);
+    for(const k in attrs) e.setAttribute(k,attrs[k]);
+    if(text!==undefined) e.textContent=text;
+    return e;
+  }
+  // wires: ['c3','c2','c1','c0','w3','w2','w1','w0']
+  function wireLayout(top, gap, regGap, withWork){
+    const names = withWork ? ['c3','c2','c1','c0','w3','w2','w1','w0'] : ['c3','c2','c1','c0'];
+    const y = {};
+    names.forEach((n,i)=>{ y[n] = top + i*gap + (i>=4 ? regGap : 0); });
+    return {names, y};
+  }
+  function drawWires(svg, L, x0, x1, inits){
+    L.names.forEach(n=>{
+      svg.append(el('text',{x:4,y:L.y[n]+4,class:'c-lab'},n));
+      if(inits) svg.append(el('text',{x:26,y:L.y[n]+4,class:'c-lab'}, n==='w0'?'|1⟩':'|0⟩'));
+      svg.append(el('line',{x1:x0,y1:L.y[n],x2:x1,y2:L.y[n],class:'c-wire'}));
+    });
+  }
+  function boxAt(g, cx, y, txt, cls){
+    g.append(el('rect',{x:cx-14,y:y-13,width:28,height:26,rx:4,class:'c-gate '+(cls||'')}));
+    g.append(el('text',{x:cx,y:y,class:'c-txt'},txt));
+  }
+  function dot(g, cx, y){ g.append(el('circle',{cx,cy:y,r:4.5,class:'c-dot'})); }
+  function vline(g, cx, y1, y2){ g.append(el('line',{x1:cx,y1,x2:cx,y2,class:'c-ctl'})); }
+  function xmark(g, cx, y){
+    g.append(el('line',{x1:cx-6,y1:y-6,x2:cx+6,y2:y+6,class:'c-ctl'}));
+    g.append(el('line',{x1:cx-6,y1:y+6,x2:cx+6,y2:y-6,class:'c-ctl'}));
+  }
+  function oplus(g, cx, y){
+    g.append(el('circle',{cx,cy:y,r:9,class:'c-ctl',style:'fill:var(--surface)'}));
+    g.append(el('line',{x1:cx-9,y1:y,x2:cx+9,y2:y,class:'c-ctl'}));
+    g.append(el('line',{x1:cx,y1:y-9,x2:cx,y2:y+9,class:'c-ctl'}));
+  }
+  function meter(g, cx, y, bit){
+    g.append(el('rect',{x:cx-14,y:y-13,width:28,height:26,rx:4,class:'c-gate c-M'}));
+    g.append(el('path',{d:`M${cx-8} ${y+5} a8 8 0 0 1 16 0`,class:'c-brk'}));
+    g.append(el('line',{x1:cx,y1:y+5,x2:cx+5,y2:y-6,class:'c-brk'}));
+    g.append(el('text',{x:cx+18,y:y-9,class:'c-small',style:'text-anchor:start;font-weight:600;fill:var(--ink)'},bit));
+  }
+  function bracket(svg, a, b, y, text){
+    svg.append(el('path',{d:`M${a} ${y+6} v-6 H${b} v6`,class:'c-brk'}));
+    svg.append(el('text',{x:(a+b)/2,y:y-6,class:'c-iter'},text));
+  }
+
+  // ---------- main circuit ----------
+  function renderCircuit(){
+    const svg=$('circuit'); svg.innerHTML='';
+    const L = wireLayout(46, 28, 14, true);
+    const yc = n => L.y[n];
+    const yTopC=yc('c3'), yBotC=yc('c0'), yTopW=yc('w3'), yBotW=yc('w0');
+    const x0=60, PAD=12, W={H:40,U:58,QFT:62,MW:44,MC:44};
+    const full = ops.concat(future);
+    let x = x0+8, cursorX = x - PAD/2;
+    const placed=[];
+    full.forEach((op,i)=>{ if(i===ops.length) cursorX = x - PAD/2; placed.push({op,x,w:W[op.t],i}); x += W[op.t]+PAD; });
+    if(ops.length===full.length) cursorX = x - PAD/2;
+    const width=Math.max(x+30,380), height=yBotW+28;
+    svg.setAttribute('width',width); svg.setAttribute('height',height); svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+    drawWires(svg, L, x0-8, width-10, true);
+    if(!full.length) svg.append(el('text',{x:x0+20,y:22,class:'c-empty'},'No gates yet. Start with H on counting.'));
+    // bracket over consecutive multiplications
+    let runStart=null;
+    placed.forEach((p,j)=>{
+      const isU = p.op.t==='U';
+      if(isU && runStart===null) runStart=j;
+      const endRun = runStart!==null && (!isU || j===placed.length-1);
+      if(endRun){
+        const last = isU ? p : placed[j-1];
+        bracket(svg, placed[runStart].x, last.x+last.w, 18, 'a^x mod 15');
+        runStart=null;
+      }
+    });
+    if(future.length) svg.append(el('line',{x1:cursorX,y1:yTopC-18,x2:cursorX,y2:yBotW+16,class:'c-cursor'}));
+    placed.forEach(p=>{
+      const g = el('g',{class: p.i>=ops.length ? 'ghost' : (p.i===ops.length-1?'fresh':'')});
+      const cx = p.x+p.w/2, t=p.op.t;
+      if(t==='H') ['c3','c2','c1','c0'].forEach(n=>boxAt(g,cx,yc(n),'H','c-H'));
+      else if(t==='U'){
+        const cy = yc('c'+p.op.k);
+        vline(g, cx, cy, yTopW-14); dot(g, cx, cy);
+        g.append(el('rect',{x:p.x+2,y:yTopW-14,width:p.w-4,height:yBotW-yTopW+28,rx:6,class:'c-gate c-U'}));
+        g.append(el('text',{x:cx,y:(yTopW+yBotW)/2-7,class:'c-txt c-big'},'×'+modpow(a,1<<p.op.k,N)));
+        g.append(el('text',{x:cx,y:(yTopW+yBotW)/2+11,class:'c-small'},'mod 15'));
+      } else if(t==='QFT'){
+        g.append(el('rect',{x:p.x,y:yTopC-14,width:p.w,height:yBotC-yTopC+28,rx:6,class:'c-gate c-Q'}));
+        g.append(el('text',{x:cx,y:(yTopC+yBotC)/2-6,class:'c-txt c-big'},'QFT†'));
+        g.append(el('text',{x:cx,y:(yTopC+yBotC)/2+12,class:'c-small'},'inverse'));
+      } else if(t==='MW') ['w3','w2','w1','w0'].forEach((n,i)=>meter(g,cx,yc(n),(p.op.r>>(3-i))&1));
+      else if(t==='MC') ['c3','c2','c1','c0'].forEach((n,i)=>meter(g,cx,yc(n),(p.op.r>>(3-i))&1));
+      svg.append(g);
+    });
+    // register labels
+    svg.append(el('text',{x:4,y:yTopC-20,class:'c-reg'},'counting'));
+    svg.append(el('text',{x:4,y:yTopW-16,class:'c-reg'},'work'));
+    const sc=$('circScroll'); requestAnimationFrame(()=>{ sc.scrollLeft = future.length ? Math.max(0,cursorX-sc.clientWidth/2) : sc.scrollWidth; });
+  }
+
+  // ---------- gate-level ----------
+  // multiplication by m mod 15 = (±1)·2^k: rotate the 4 bits by k with swaps, then flip all bits if the sign is −1
+  const ROT = {0:[],1:[[2,3],[1,2],[0,1]],2:[[0,2],[1,3]],3:[[0,1],[1,2],[2,3]]};
+  function decomposeMult(m){
+    for(let k=0;k<4;k++) for(const s of [1,-1]) if((((s*(1<<k))%N)+N)%N===m) return {swaps:ROT[k], flip:s<0};
+    return null;
+  }
+  function renderDecomp(){
+    $('dA').textContent = a;
+    // multiplications
+    const svg=$('multSvg'); svg.innerHTML='';
+    const L = wireLayout(46, 28, 14, true);
+    const x0=40, CW=36, PAD=6, GPAD=22;
+    const groups=[];
+    let x=x0+6;
+    for(let k=0;k<4;k++){
+      const m = mult(k), d = decomposeMult(m), cols=[];
+      if(m===1) cols.push({t:'none'});
+      else { d.swaps.forEach(sw=>cols.push({t:'cswap',a:sw[0],b:sw[1]})); if(d.flip) [3,2,1,0].forEach(q=>cols.push({t:'cx',q})); }
+      const start=x;
+      cols.forEach(c=>{ c.x=x; x+=CW+PAD; });
+      groups.push({k,m,cols,start,end:x-PAD});
+      x += GPAD;
+    }
+    const width=x+10, height=L.y.w0+30;
+    svg.setAttribute('width',width); svg.setAttribute('height',height); svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+    drawWires(svg, L, x0-8, width-6, false);
+    groups.forEach(gp=>{
+      bracket(svg, gp.start, gp.end, 18, 'c'+gp.k+': ×'+gp.m);
+      const cy = L.y['c'+gp.k];
+      gp.cols.forEach(c=>{
+        const g=el('g',{}), cx=c.x+CW/2;
+        if(c.t==='none'){ g.append(el('text',{x:cx,y:(L.y.w3+L.y.w0)/2,class:'c-small'},'no gates')); }
+        else if(c.t==='cswap'){
+          const ya=L.y['w'+c.a], yb=L.y['w'+c.b];
+          vline(g,cx,cy,Math.max(ya,yb)); dot(g,cx,cy); xmark(g,cx,ya); xmark(g,cx,yb);
+        } else if(c.t==='cx'){
+          const yt=L.y['w'+c.q];
+          vline(g,cx,cy,yt); dot(g,cx,cy); oplus(g,cx,yt);
+        }
+        svg.append(g);
+      });
+    });
+    // inverse QFT (fixed)
+    const q=$('qftSvg'); q.innerHTML='';
+    const LQ = wireLayout(46, 30, 0, false);
+    const cols=[{t:'swap',a:0,b:3},{t:'swap',a:1,b:2}];
+    for(let j=0;j<4;j++){
+      for(let m=0;m<j;m++) cols.push({t:'cp',c:m,tg:j,lab:'−'+(180/(1<<(j-m)))+'°'});
+      cols.push({t:'h',q:j});
+    }
+    const QW=44, QP=8, qx0=40;
+    let qx=qx0+6;
+    cols.forEach(c=>{ c.x=qx; qx+=QW+QP; });
+    const qw=qx+10, qh=LQ.y.c0+44;
+    q.setAttribute('width',qw); q.setAttribute('height',qh); q.setAttribute('viewBox',`0 0 ${qw} ${qh}`);
+    drawWires(q, LQ, qx0-8, qw-6, false);
+    bracket(q, cols[0].x, cols[1].x+QW, 18, 'reverse order');
+    [0,1,2,3].forEach(j=>{
+      const mine = cols.filter(c=>(c.t==='cp'&&c.tg===j)||(c.t==='h'&&c.q===j));
+      bracket(q, mine[0].x, mine[mine.length-1].x+QW, 18, 'qubit c'+j);
+    });
+    cols.forEach(c=>{
+      const g=el('g',{}), cx=c.x+QW/2;
+      if(c.t==='swap'){ const ya=LQ.y['c'+c.a], yb=LQ.y['c'+c.b]; vline(g,cx,Math.min(ya,yb),Math.max(ya,yb)); xmark(g,cx,ya); xmark(g,cx,yb); }
+      else if(c.t==='h') boxAt(g,cx,LQ.y['c'+c.q],'H','c-H');
+      else if(c.t==='cp'){
+        const yc=LQ.y['c'+c.c], yt=LQ.y['c'+c.tg];
+        vline(g,cx,yc,yt); dot(g,cx,yc);
+        g.append(el('rect',{x:cx-20,y:yt-13,width:40,height:26,rx:4,class:'c-gate c-Q'}));
+        g.append(el('text',{x:cx,y:yt,class:'c-txt',style:'font-size:9.5px'},c.lab));
+      }
+      q.append(g);
+    });
+    q.append(el('text',{x:qx0,y:qh-8,class:'c-col-lab',style:'text-anchor:start'},'Boxes with degrees are controlled phase turns: the turn happens only when the dot qubit is 1.'));
+  }
+
+  // ---------- actions ----------
+  function sample(dist){
+    const r=Math.random(); let acc=0;
+    for(let i=0;i<dist.length;i++){ acc+=dist[i]; if(r<acc) return i; }
+    let last=0; dist.forEach((p,i)=>{ if(p>1e-9) last=i; }); return last;
+  }
+  function apply(t){
+    if(t==='U') ops.push({t:'U',k:uCount()});
+    else if(t==='MW') ops.push({t:'MW',r:sample(py)});
+    else if(t==='MC') ops.push({t:'MC',r:sample(px)});
+    else ops.push({t});
+  }
+  function push(t){ future=[]; apply(t); render(); }
+
+  $('bH').onclick=()=>push('H');
+  $('bU').onclick=()=>push('U');
+  $('bUA').onclick=()=>{ future=[]; while(uCount()<4) ops.push({t:'U',k:uCount()}); render(); };
+  $('bMW').onclick=()=>push('MW');
+  $('bQ').onclick=()=>push('QFT');
+  $('bMC').onclick=()=>push('MC');
+  $('bB').onclick=()=>{ if(!ops.length) return; future.unshift(ops.pop()); render(); };
+  $('bF').onclick=()=>{ if(!future.length) return; ops.push(future.shift()); render(); };
+  $('bR').onclick=()=>{ ops=[]; future=[]; render(); };
+  $('bRun').onclick=()=>{
+    future=[];
+    if(!isPrefix(STD)) ops=[];
+    const plan = STD.slice(ops.length);
+    if(!plan.length) return;
+    running=true; render();
+    const step = reduce ? 150 : 900;
+    (function next(){
+      if(!plan.length){ running=false; render(); return; }
+      apply(plan.shift()); render();
+      setTimeout(next, step);
+    })();
+  };
+  document.addEventListener('keydown',e=>{
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    if(e.key==='ArrowLeft' && !$('bB').disabled){ e.preventDefault(); $('bB').click(); }
+    if(e.key==='ArrowRight' && !$('bF').disabled){ e.preventDefault(); $('bF').click(); }
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>render());
+
+  render();
+})();
+</script>
+
+</body>
+</html>
