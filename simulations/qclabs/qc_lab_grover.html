@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grover Search Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one instrument column — controls, a growing circuit strip, then the amplitude scope with readouts beside it on wide screens */
+:root{
+  --bg:#F1F4F6; --surface:#FFFFFF; --ink:#13202B; --muted:#5A6875;
+  --line:#D6DDE3; --line-strong:#9AA8B4;
+  --pos:#1D6C8A; --neg:#BF463A; --target:#C97C16; --target-soft:rgba(201,124,22,.12);
+  --pos-soft:rgba(29,108,138,.10);
+  --display:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1318; --surface:#141C23; --ink:#E3EAF0; --muted:#8E9CA9;
+  --line:#26323D; --line-strong:#4A5A68;
+  --pos:#53B4D6; --neg:#EF7B6D; --target:#F0A445; --target-soft:rgba(240,164,69,.14);
+  --pos-soft:rgba(83,180,214,.12); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1318; --surface:#141C23; --ink:#E3EAF0; --muted:#8E9CA9;
+  --line:#26323D; --line-strong:#4A5A68;
+  --pos:#53B4D6; --neg:#EF7B6D; --target:#F0A445; --target-soft:rgba(240,164,69,.14);
+  --pos-soft:rgba(83,180,214,.12); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:10px 0 0;max-width:78ch;line-height:1.6}
+.sub strong{color:var(--ink);font-weight:600}
+.ket{font-family:var(--mono);font-weight:500}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.manual summary{font-family:var(--display);font-weight:600;font-size:1.05rem;cursor:pointer}
+.manual ol{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.manual ol li::marker{font-family:var(--display);font-weight:700;color:var(--pos)}
+.manual b{font-weight:600}
+.tips{margin:12px 0 0;padding:10px 0 0 18px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.tips b{color:var(--pos)}
+.chip{display:inline-block;font-family:var(--display);font-weight:600;font-size:.82em;padding:1px 8px;border-radius:5px;border:1px solid var(--line-strong);background:var(--bg);color:var(--ink);white-space:nowrap}
+.label{font-family:var(--display);font-weight:600;font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+
+/* controls */
+.controls{display:grid;grid-template-columns:auto 1fr;gap:16px 28px;align-items:start}
+@media (max-width:760px){.controls{grid-template-columns:1fr}}
+.bits{display:flex;gap:6px;align-items:flex-end}
+.bit{display:flex;flex-direction:column;align-items:center;gap:3px}
+.bit small{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.bit button{width:38px;height:42px;border-radius:6px;border:1px solid var(--target);background:var(--target-soft);color:var(--target);
+  font-family:var(--mono);font-size:1.15rem;font-weight:600;cursor:pointer}
+.bit button:hover{background:var(--target);color:var(--surface)}
+.hint{font-size:.78rem;color:var(--muted);margin:8px 0 0;max-width:30ch}
+.ops{display:flex;flex-wrap:wrap;gap:8px}
+.op{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:112px;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left;font:inherit;
+  transition:border-color .15s,background .15s,box-shadow .15s}
+.op b{font-family:var(--display);font-weight:600;font-size:1rem}
+.op span{font-size:.74rem;color:var(--muted)}
+.op:hover:not(:disabled){border-color:var(--pos);background:var(--pos-soft)}
+.op.suggest{border-color:var(--pos);background:var(--pos-soft);box-shadow:0 0 0 3px var(--pos-soft)}
+.op.suggest b,.op.suggest span{color:var(--pos)}
+.op.suggest b::after{content:" ← next";font-family:var(--body);font-weight:500;font-size:.7rem;color:var(--pos)}
+.op.quiet{min-width:0;border-style:dashed}
+.op:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
+.stepper{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.step-btn{font:inherit;font-family:var(--display);font-weight:600;font-size:.95rem;padding:7px 14px;border-radius:999px;
+  border:1px solid var(--pos);background:var(--pos-soft);color:var(--pos);cursor:pointer}
+.step-btn:hover:not(:disabled){background:var(--pos);color:var(--surface)}
+.step-btn:disabled{opacity:.35;cursor:not-allowed}
+.step-pos{font-family:var(--mono);font-size:.85rem;font-variant-numeric:tabular-nums;min-width:11ch;text-align:center}
+.step-keys{font-size:.75rem;color:var(--muted)}
+.ghost{opacity:.28}
+.c-cursor{stroke:var(--pos);stroke-width:2;stroke-dasharray:4 3}
+.guide{margin:12px 0 0;font-size:.9rem;min-height:1.5em}
+.guide strong{color:var(--pos);font-weight:600}
+
+/* circuit */
+.circ-scroll{overflow-x:auto;padding-bottom:4px;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){.circ-scroll{scroll-behavior:auto}}
+.qc text{font-family:var(--mono);fill:var(--ink)}
+.c-dot{fill:var(--ink)}
+.c-ctl{stroke:var(--ink);stroke-width:1.6}
+.c-col-lab{font-size:9.5px;fill:var(--muted)!important;text-anchor:middle;font-family:var(--body)!important}
+.decomp{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:900px){.decomp{grid-template-columns:1fr}}
+.decomp .panel{min-width:0}
+.decomp h2{font-family:var(--display);font-weight:600;font-size:1.25rem;margin:0 0 4px}
+.decomp ul{margin:10px 0 0;padding-left:18px;font-size:.86rem;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.decomp ul b{color:var(--ink);font-weight:600}
+.decomp-scroll{overflow-x:auto;margin-top:8px}
+.c-wire{stroke:var(--line-strong);stroke-width:1.4}
+.c-lab{font-size:12px;fill:var(--muted)!important}
+.c-gate{fill:var(--surface);stroke:var(--ink);stroke-width:1.3}
+.c-H{fill:var(--pos-soft);stroke:var(--pos)}
+.c-O{fill:var(--target-soft);stroke:var(--target)}
+.c-D{fill:var(--pos-soft);stroke:var(--pos)}
+.c-M{fill:var(--surface);stroke:var(--muted)}
+.c-txt{font-size:13px;font-weight:600;text-anchor:middle;dominant-baseline:central}
+.c-big{font-family:var(--display)!important;font-size:13px;font-weight:600}
+.c-small{font-size:9.5px;fill:var(--muted)!important;text-anchor:middle}
+.c-brk{stroke:var(--muted);stroke-width:1;fill:none}
+.c-iter{font-size:10px;fill:var(--muted)!important;text-anchor:middle;font-family:var(--display)!important;letter-spacing:.06em;text-transform:uppercase}
+.fresh .c-gate{stroke-width:2.4}
+.c-empty{font-size:12px;fill:var(--muted)!important;font-family:var(--body)!important}
+
+/* scope */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.scope-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;align-items:baseline}
+.legend{display:flex;gap:14px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.scope{position:relative;height:320px;margin-top:6px;padding-left:34px}
+.grid-line{position:absolute;left:34px;right:0;height:0;border-top:1px solid var(--line)}
+.grid-line.zero{border-top:1px solid var(--line-strong)}
+.grid-line span{position:absolute;left:-34px;top:-8px;width:28px;text-align:right;font-family:var(--mono);font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.cols{position:absolute;inset:0 0 0 34px;display:grid;grid-template-columns:repeat(32,1fr)}
+.col{position:relative;cursor:pointer;border-radius:3px}
+.col:hover,.col:focus-visible{background:var(--pos-soft);outline:none}
+.col.is-target{background:var(--target-soft)}
+.bar{position:absolute;left:18%;right:18%;bottom:50%;height:50%;transform-origin:50% 100%;background:var(--pos);border-radius:2px 2px 0 0;
+  transition:transform .65s cubic-bezier(.3,.7,.2,1),background-color .3s}
+.bar.neg{background:var(--neg);border-radius:0 0 2px 2px}
+.col.is-target .bar{box-shadow:0 0 0 1.5px var(--target)}
+.mean{position:absolute;left:34px;right:0;height:0;border-top:2px dashed var(--ink);opacity:.55;transition:top .65s cubic-bezier(.3,.7,.2,1);pointer-events:none}
+.mean span{position:absolute;right:0;top:-18px;font-family:var(--display);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;background:var(--surface);padding:0 4px}
+.mean.hot{opacity:1;border-top-color:var(--pos)}
+.mean.hot span{color:var(--pos)}
+@media (prefers-reduced-motion:reduce){.bar,.mean{transition:none}}
+.xlabels{display:grid;grid-template-columns:repeat(32,1fr);margin-left:34px;margin-top:6px}
+.xlabels div{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-size:.66rem;color:var(--muted);justify-self:center;line-height:1}
+.xlabels div.is-target{color:var(--target);font-weight:600}
+@media (max-width:520px){.xlabels div{font-size:.55rem}}
+.readout{margin-top:10px;font-family:var(--mono);font-size:.82rem;color:var(--muted);min-height:1.4em}
+.readout b{color:var(--ink);font-weight:600}
+
+/* side */
+.side{display:flex;flex-direction:column;gap:18px}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat .v{font-family:var(--display);font-weight:700;font-size:2.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.stat .v.t{color:var(--target)}
+.stat .d{font-size:.8rem;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stats .wide{grid-column:1/-1}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}
+.meter div{height:100%;background:var(--target);width:0;transition:width .65s cubic-bezier(.3,.7,.2,1)}
+.strip{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;align-items:end;height:84px;margin-top:4px}
+.strip .s{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px}
+.strip .s i{display:block;width:100%;background:var(--line-strong);border-radius:2px 2px 0 0;min-height:2px;opacity:.6}
+.strip .s.opt i{background:var(--target);opacity:.75}
+.strip .s.now i{opacity:1;outline:2px solid var(--ink);outline-offset:1px}
+.strip .s small{font-family:var(--mono);font-size:.66rem;color:var(--muted)}
+.strip .s.now small{color:var(--ink);font-weight:600}
+.note{font-size:.78rem;color:var(--muted);margin:8px 0 0}
+.result{display:none;margin-top:4px;padding:10px 12px;border-radius:8px;border:1px solid var(--target);background:var(--target-soft);font-size:.88rem}
+.result.on{display:block}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Grover Search Lab</h1>
+      <p class="sub">Imagine searching an unsorted list of 32 items for the one that meets a condition, where the only tool is a check that says yes or no for a single item. A classical computer has to test items one by one: about 16 checks on average, and all 32 in the worst case, when the hidden item happens to be the last one tested. Grover's algorithm needs <strong>4 iterations, always</strong>. There is no lucky or unlucky case, <strong>because every iteration acts on all 32 items at once</strong>, so the count is the same wherever the hidden item sits. That fixed count grows only with the square root of the list size. It starts by putting 5 qubits into an equal superposition of all 32 items. It then repeats two steps: the oracle marks the hidden item by flipping the sign of its amplitude, and diffusion reflects all amplitudes around their average. Each round moves a little more amplitude onto the marked item, so a measurement after the right number of rounds almost certainly returns it. On this page you apply these operations yourself, one at a time or one iteration at a time, step back and forward through the circuit, and watch how the 32 amplitudes change. The gate-level circuits at the bottom show what the oracle and diffusion are made of.</p>
+    </div>
+  </header>
+
+  <details class="panel manual" open>
+    <summary>How to use this page</summary>
+    <ol>
+      <li><b>Choose a target</b> (optional). Flip the bits or click a bar. The default is <span class="ket">|10110⟩</span>.</li>
+      <li>Press <span class="chip">H on all</span> once to start.</li>
+      <li>Press <span class="chip">Oracle</span>, then <span class="chip">Diffusion</span>. That is one iteration. <span class="chip">Full iteration</span> does both in one click.</li>
+      <li>Repeat step 3 until you reach <b>4 iterations</b>.</li>
+      <li>Press <span class="chip">Measure</span> to read the result.</li>
+    </ol>
+    <ul class="tips">
+      <li>The highlighted button marked <b>← next</b> is always the next step.</li>
+      <li><span class="chip">◀ Back</span> and <span class="chip">Forward ▶</span> (or the ← → keys) step through the gates you applied.</li>
+      <li><span class="chip">Run to optimum</span> plays all the steps for you. <span class="chip">Reset</span> starts over.</li>
+    </ul>
+  </details>
+
+  <section class="panel controls" aria-label="Controls">
+    <div>
+      <p class="label">Hidden target</p>
+      <div class="bits" id="bits"></div>
+      <p class="hint">Flip a bit, or click any bar below. Changing the target restarts the circuit.</p>
+    </div>
+    <div>
+      <p class="label">Apply an operation</p>
+      <div class="ops">
+        <button class="op" id="bH"><b>H on all</b><span>Equal superposition</span></button>
+        <button class="op" id="bO"><b>Oracle</b><span>Flip target's sign</span></button>
+        <button class="op" id="bD"><b>Diffusion</b><span>Flip all around mean</span></button>
+        <button class="op" id="bI"><b>Full iteration</b><span>Oracle + diffusion</span></button>
+        <button class="op" id="bM"><b>Measure</b><span>Read out the qubits</span></button>
+        <button class="op quiet" id="bRun"><b>Run to optimum</b><span>Auto-play 4 iterations</span></button>
+        <button class="op quiet" id="bR"><b>Reset</b><span>Clear the circuit</span></button>
+      </div>
+      <div class="stepper">
+        <button class="step-btn" id="bU" aria-label="Step back"><span aria-hidden="true">◀</span> Back</button>
+        <span class="step-pos" id="stepPos">Step 0 of 0</span>
+        <button class="step-btn" id="bF" aria-label="Step forward">Forward <span aria-hidden="true">▶</span></button>
+        <span class="step-keys">or use ← → keys</span>
+      </div>
+      <p class="guide" id="guide"></p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Circuit">
+    <p class="label">Circuit · 5 qubits</p>
+    <div class="circ-scroll" id="circScroll"><svg id="circuit" class="qc" role="img" aria-label="Quantum circuit"></svg></div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-label="Amplitudes">
+      <div class="scope-head">
+        <p class="label" style="margin:0">Amplitude of each basis state</p>
+        <div class="legend">
+          <span><i style="background:var(--pos)"></i>positive</span>
+          <span><i style="background:var(--neg)"></i>negative (sign flipped)</span>
+          <span><i style="background:var(--target)"></i>target</span>
+          <span><i style="background:none;border-top:2px dashed var(--ink);height:0;border-radius:0"></i>mean</span>
+        </div>
+      </div>
+      <div class="scope" id="scope">
+        <div class="grid-line" style="top:0"><span>1</span></div>
+        <div class="grid-line" style="top:25%"><span>0.5</span></div>
+        <div class="grid-line zero" style="top:50%"><span>0</span></div>
+        <div class="grid-line" style="top:75%"><span>−0.5</span></div>
+        <div class="grid-line" style="top:100%"><span>−1</span></div>
+        <div class="cols" id="cols"></div>
+        <div class="mean" id="mean"><span>mean</span></div>
+      </div>
+      <div class="xlabels" id="xlabels"></div>
+      <div class="readout" id="readout">Hover or tap a bar to read its amplitude.</div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <div class="stats">
+          <div class="stat"><p class="label" style="margin:0">Iterations</p><span class="v" id="sIter">0</span><span class="d">optimum is 4</span></div>
+          <div class="stat"><p class="label" style="margin:0">Gates</p><span class="v" id="sGates">0</span><span class="d">applied so far</span></div>
+          <div class="stat wide"><p class="label" style="margin:0">Chance to measure target</p><span class="v t" id="sP">3.1%</span>
+            <div class="meter"><div id="sMeter"></div></div><span class="d" id="sLikely"></span></div>
+        </div>
+        <div class="result" id="result"></div>
+      </section>
+      <section class="panel">
+        <p class="label">Success chance after k iterations</p>
+        <div class="strip" id="strip"></div>
+        <p class="note">Past 4 iterations the target shrinks again. Grover overshoots, so stopping at the right count matters.</p>
+      </section>
+    </aside>
+  </div>
+
+  <div class="decomp">
+    <section class="panel" aria-label="Oracle circuit">
+      <p class="label">Inside the oracle</p>
+      <h2>Oracle for <span class="ket" id="oTarget">|10110⟩</span></h2>
+      <div class="decomp-scroll"><svg id="oracleSvg" class="qc" role="img" aria-label="Oracle gate circuit"></svg></div>
+      <ul>
+        <li><b>X gates</b> on the qubits where the target has a 0, so the target becomes <span class="ket">|11111⟩</span>.</li>
+        <li><b>Multi-controlled Z</b> flips the sign only when every qubit is 1.</li>
+        <li><b>X gates again</b> undo the first step. Only the target's sign has changed.</li>
+      </ul>
+    </section>
+    <section class="panel" aria-label="Diffusion circuit">
+      <p class="label">Inside diffusion</p>
+      <h2>Diffusion (same for any target)</h2>
+      <div class="decomp-scroll"><svg id="diffSvg" class="qc" role="img" aria-label="Diffusion gate circuit"></svg></div>
+      <ul>
+        <li><b>H then X</b> on all qubits turns the equal superposition into <span class="ket">|11111⟩</span>.</li>
+        <li><b>Multi-controlled Z</b> flips the sign of that one state.</li>
+        <li><b>X then H</b> undo the change of view. The net effect flips every bar around the mean.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  const N = 32, NQ = 5, OPT = 4;
+  const THETA = Math.asin(1/Math.sqrt(N));
+  let target = 22;            // |10110⟩
+  let ops = [];               // gates applied up to the current step
+  let future = [];            // gates stepped back over, replayable with Forward
+  let running = false;
+  let hoverIdx = null;
+
+  const $ = id => document.getElementById(id);
+  const bits = i => i.toString(2).padStart(NQ,'0');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- simulation ----------
+  function wht(a){
+    a = a.slice();
+    for(let h=1; h<N; h*=2)
+      for(let i=0; i<N; i+=2*h)
+        for(let j=i; j<i+h; j++){ const x=a[j], y=a[j+h]; a[j]=x+y; a[j+h]=x-y; }
+    const s = 1/Math.sqrt(N);
+    return a.map(v=>v*s);
+  }
+  function stateOf(list){
+    let a = new Array(N).fill(0); a[0]=1;
+    for(const op of list){
+      if(op.t==='H') a = wht(a);
+      else if(op.t==='O'){ a = a.slice(); a[target] = -a[target]; }
+      else if(op.t==='D'){ const m = a.reduce((s,v)=>s+v,0)/N; a = a.map(v=>2*m-v); }
+      else if(op.t==='M'){ a = new Array(N).fill(0); a[op.r]=1; }
+    }
+    return a.map(v=>Math.abs(v)<1e-12?0:v);
+  }
+  const measured = () => ops.length && ops[ops.length-1].t==='M';
+  function iterations(){
+    let k=0; for(let i=1;i<ops.length;i++) if(ops[i].t==='D' && ops[i-1].t==='O') k++;
+    return k;
+  }
+  function isStandard(){
+    if(!ops.length) return true;
+    if(ops[0].t!=='H') return false;
+    for(let i=1;i<ops.length;i++){
+      const want = (i%2===1)?'O':'D';
+      if(ops[i].t==='M') return i===ops.length-1;
+      if(ops[i].t!==want) return false;
+    }
+    return true;
+  }
+
+  // ---------- build static DOM ----------
+  const bitsEl = $('bits');
+  for(let q=NQ-1; q>=0; q--){
+    const w = document.createElement('div'); w.className='bit';
+    const b = document.createElement('button'); b.id='bit'+q; b.setAttribute('aria-label','Target qubit q'+q);
+    b.addEventListener('click',()=>{ if(running) return; setTarget(target ^ (1<<q)); });
+    const s = document.createElement('small'); s.textContent='q'+q;
+    w.append(b,s); bitsEl.append(w);
+  }
+  const colsEl = $('cols'), xl = $('xlabels');
+  const barEls = [], colEls = [], xEls = [];
+  for(let i=0;i<N;i++){
+    const c = document.createElement('div'); c.className='col'; c.tabIndex=0;
+    c.setAttribute('role','button'); c.setAttribute('aria-label','State '+bits(i)+'. Click to make it the target.');
+    const b = document.createElement('div'); b.className='bar';
+    c.append(b); colsEl.append(c); barEls.push(b); colEls.push(c);
+    c.addEventListener('mouseenter',()=>{hoverIdx=i;readout();});
+    c.addEventListener('focus',()=>{hoverIdx=i;readout();});
+    c.addEventListener('mouseleave',()=>{hoverIdx=null;readout();});
+    c.addEventListener('click',()=>{ hoverIdx=i; if(!running && i!==target) setTarget(i); else readout(); });
+    c.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ') && !running){ e.preventDefault(); setTarget(i);} });
+    const x = document.createElement('div'); x.textContent=bits(i); xl.append(x); xEls.push(x);
+  }
+  const strip = $('strip');
+  for(let k=0;k<=8;k++){
+    const p = Math.sin((2*k+1)*THETA)**2;
+    const s = document.createElement('div'); s.className='s'+(k===OPT?' opt':''); s.id='strip'+k;
+    s.title = k+' iterations: '+(p*100).toFixed(1)+'%';
+    const i = document.createElement('i'); i.style.height=(p*100*0.72)+'%';
+    const sm = document.createElement('small'); sm.textContent=k;
+    s.append(i,sm); strip.append(s);
+  }
+
+  // ---------- render ----------
+  let state = stateOf(ops);
+  function render(){
+    state = stateOf(ops);
+    const mean = state.reduce((s,v)=>s+v,0)/N;
+    for(let i=0;i<N;i++){
+      const v = state[i];
+      barEls[i].style.transform = 'scaleY('+(v===0?0.0001:v)+')';
+      barEls[i].classList.toggle('neg', v<0);
+      colEls[i].classList.toggle('is-target', i===target);
+      xEls[i].classList.toggle('is-target', i===target);
+    }
+    $('mean').style.top = (50 - mean*50)+'%';
+    for(let q=0;q<NQ;q++) $('bit'+q).textContent = (target>>q)&1;
+
+    const p = state[target]**2;
+    $('sP').textContent = (p*100).toFixed(1)+'%';
+    $('sMeter').style.width = (p*100)+'%';
+    const k = iterations();
+    $('sIter').textContent = k;
+    $('sGates').textContent = ops.length;
+    $('stepPos').textContent = 'Step '+ops.length+' of '+(ops.length+future.length);
+    let best=0; for(let i=1;i<N;i++) if(state[i]**2 > state[best]**2+1e-12) best=i;
+    const tie = state.filter(v=>Math.abs(v*v - state[best]**2)<1e-9).length;
+    $('sLikely').textContent = tie>1 ? 'All '+tie+' states are equally likely.' :
+      'Most likely outcome: |'+bits(best)+'⟩'+(best===target?' (the target)':'');
+    const std = isStandard();
+    for(let j=0;j<=8;j++) $('strip'+j).classList.toggle('now', std && ops.length>0 && j===k && ops[ops.length-1].t!=='O');
+
+    const res = $('result');
+    if(measured()){
+      const r = ops[ops.length-1].r;
+      res.className='result on';
+      res.innerHTML = 'Measured <span class="ket">|'+bits(r)+'⟩</span> — '+(r===target?'found the target.':'not the target. Undo and try again, or reset.');
+    } else res.className='result';
+
+    renderCircuit();
+    renderDecomp();
+    updateButtons();
+    readout();
+  }
+
+  // ---------- gate-level oracle and diffusion ----------
+  function drawDecomp(svg, cols){
+    svg.innerHTML='';
+    const top=22, gap=34, x0=40, CW=46, PAD=10;
+    const wy = q => top + (NQ-1-q)*gap;
+    const yTop=wy(NQ-1), yBot=wy(0);
+    const width = x0 + cols.length*(CW+PAD) + 20;
+    const height = yBot + 40;
+    svg.setAttribute('width',width); svg.setAttribute('height',height);
+    svg.setAttribute('viewBox','0 0 '+width+' '+height);
+    for(let q=NQ-1;q>=0;q--){
+      svg.append(el('text',{x:4,y:wy(q)+4,class:'c-lab'},'q'+q));
+      svg.append(el('line',{x1:x0-8,y1:wy(q),x2:width-6,y2:wy(q),class:'c-wire'}));
+    }
+    cols.forEach((c,i)=>{
+      const x = x0 + i*(CW+PAD), cx = x + CW/2;
+      if(c.type==='MCZ'){
+        svg.append(el('line',{x1:cx,y1:yTop,x2:cx,y2:yBot-13,class:'c-ctl'}));
+        for(let q=1;q<NQ;q++) svg.append(el('circle',{cx,cy:wy(q),r:5,class:'c-dot'}));
+        svg.append(el('rect',{x:cx-14,y:yBot-14,width:28,height:28,rx:4,class:'c-gate c-O'}));
+        svg.append(el('text',{x:cx,y:yBot,class:'c-txt'},'Z'));
+      } else {
+        if(!c.qubits.length) svg.append(el('text',{x:cx,y:(yTop+yBot)/2,class:'c-small'},'none'));
+        c.qubits.forEach(q=>{
+          svg.append(el('rect',{x:cx-14,y:wy(q)-14,width:28,height:28,rx:4,class:'c-gate'+(c.type==='H'?' c-H':'')}));
+          svg.append(el('text',{x:cx,y:wy(q),class:'c-txt'},c.type));
+        });
+      }
+      svg.append(el('text',{x:cx,y:yBot+30,class:'c-col-lab'},c.label));
+    });
+  }
+  function renderDecomp(){
+    $('oTarget').textContent = '|'+bits(target)+'⟩';
+    const zeros = []; for(let q=NQ-1;q>=0;q--) if(!((target>>q)&1)) zeros.push(q);
+    const allQ = [4,3,2,1,0];
+    drawDecomp($('oracleSvg'),[
+      {type:'X',qubits:zeros,label:'flip 0s'},
+      {type:'MCZ',label:'mark'},
+      {type:'X',qubits:zeros,label:'undo'}
+    ]);
+    drawDecomp($('diffSvg'),[
+      {type:'H',qubits:allQ,label:'H'},
+      {type:'X',qubits:allQ,label:'X'},
+      {type:'MCZ',label:'mark'},
+      {type:'X',qubits:allQ,label:'X'},
+      {type:'H',qubits:allQ,label:'H'}
+    ]);
+  }
+
+  function readout(){
+    const el = $('readout');
+    if(hoverIdx===null){ el.innerHTML='Hover or tap a bar to read its amplitude. Click a bar to make it the target.'; return; }
+    const v = state[hoverIdx];
+    el.innerHTML = '<b>|'+bits(hoverIdx)+'⟩</b>'+(hoverIdx===target?' target':'')+
+      ' · amplitude <b>'+(v>=0?'+':'−')+Math.abs(v).toFixed(3)+'</b> · probability <b>'+(v*v*100).toFixed(1)+'%</b>';
+  }
+
+  function updateButtons(){
+    const m = measured();
+    const last = ops.length ? ops[ops.length-1].t : null;
+    const all = ['bH','bO','bD','bI','bM','bRun','bU','bF','bR'];
+    all.forEach(id=>{ $(id).disabled = running; $(id).classList.remove('suggest'); });
+    if(!running){
+      ['bH','bO','bD','bI','bM'].forEach(id=>$(id).disabled = m);
+      $('bRun').disabled = m;
+      $('bU').disabled = ops.length===0;
+      $('bF').disabled = future.length===0;
+      $('bR').disabled = ops.length===0 && future.length===0;
+    }
+    const g = $('guide'), k = iterations();
+    if(running){ g.innerHTML='Running…'; return; }
+    if(m){ g.innerHTML='The qubits have been measured. Step <strong>Back</strong> to look before the measurement, or <strong>Reset</strong> to start over.'; return; }
+    if(future.length){ g.innerHTML='You are replaying the circuit. Press <strong>Forward</strong> for the next gate, or apply a new one to replace the faded gates.'; return; }
+    if(!ops.length){ $('bH').classList.add('suggest'); g.innerHTML='All amplitude sits on <span class="ket">|00000⟩</span>. <strong>Apply H</strong> to spread it evenly over all 32 states.'; return; }
+    if(last==='O'){ $('bD').classList.add('suggest'); g.innerHTML='The target now points down. <strong>Apply diffusion</strong>: every bar flips around the dashed mean line, so the target jumps up.'; return; }
+    if(k>=OPT && isStandard()){
+      $('bM').classList.add('suggest');
+      g.innerHTML = k===OPT ? '4 iterations is the optimum for 32 states. <strong>Measure</strong> now, or keep iterating to watch it overshoot.'
+                            : k+' iterations: past the optimum, the target is shrinking. Undo back to 4 or measure anyway.';
+      return;
+    }
+    $('bO').classList.add('suggest');
+    g.innerHTML = last==='H' && ops.length===1
+      ? 'Every state has the same small amplitude. <strong>Apply the oracle</strong>: it flips the sign of the target only.'
+      : 'Iteration '+k+' done. <strong>Apply the oracle</strong> again to start iteration '+(k+1)+'.';
+  }
+
+  // ---------- circuit ----------
+  const NS='http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){
+    const e = document.createElementNS(NS, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    if(text!==undefined) e.textContent=text;
+    return e;
+  }
+  function renderCircuit(){
+    const svg = $('circuit'); svg.innerHTML='';
+    const top=40, gap=34, x0=64;
+    const wy = q => top + (NQ-1-q)*gap;     // q4 at top
+    const yTop = wy(NQ-1), yBot = wy(0);
+    const W = {H:42, O:62, D:68, M:42}, PAD=12;
+    let x = x0 + 8;
+    const placed = [];
+    let pairsDone = 0;
+    const full = ops.concat(future);
+    let cursorX = x - PAD/2;
+    full.forEach((op,i)=>{
+      let iter = null;
+      if(op.t==='O'){ iter = pairsDone+1; }
+      if(op.t==='D'){ iter = pairsDone+1; if(i>0 && full[i-1].t==='O') pairsDone++; }
+      if(i===ops.length) cursorX = x - PAD/2;
+      placed.push({op, x, w:W[op.t], iter, i});
+      x += W[op.t] + PAD;
+    });
+    if(ops.length===full.length) cursorX = x - PAD/2;
+    const width = Math.max(x + 30, 360);
+    const height = yBot + 34;
+    svg.setAttribute('width', width); svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', '0 0 '+width+' '+height);
+
+    for(let q=NQ-1;q>=0;q--){
+      svg.append(el('text',{x:4,y:wy(q)+4,class:'c-lab'},'q'+q));
+      svg.append(el('text',{x:28,y:wy(q)+4,class:'c-lab'},'|0⟩'));
+      svg.append(el('line',{x1:x0-8,y1:wy(q),x2:width-10,y2:wy(q),class:'c-wire'}));
+    }
+    if(!full.length){
+      svg.append(el('text',{x:x0+20,y:top-18,class:'c-empty'},'No gates yet. Start with H.'));
+    }
+    if(future.length){
+      svg.append(el('line',{x1:cursorX,y1:yTop-20,x2:cursorX,y2:yBot+20,class:'c-cursor'}));
+    }
+
+    // iteration brackets
+    const groups = {};
+    placed.forEach(p=>{ if(p.iter){ (groups[p.iter] ||= []).push(p); } });
+    Object.keys(groups).forEach(k=>{
+      const g = groups[k], a = g[0].x, b = g[g.length-1].x + g[g.length-1].w;
+      svg.append(el('path',{d:`M${a} ${top-12} v-6 H${b} v6`,class:'c-brk'}));
+      svg.append(el('text',{x:(a+b)/2,y:top-24,class:'c-iter'},'Iteration '+k));
+    });
+
+    placed.forEach(p=>{
+      const g = el('g',{class: p.i>=ops.length ? 'ghost' : (p.i===ops.length-1 ? 'fresh':'')});
+      const cx = p.x + p.w/2;
+      if(p.op.t==='H'){
+        for(let q=0;q<NQ;q++){
+          g.append(el('rect',{x:p.x+5,y:wy(q)-14,width:p.w-10,height:28,rx:4,class:'c-gate c-H'}));
+          g.append(el('text',{x:cx,y:wy(q),class:'c-txt'},'H'));
+        }
+      } else if(p.op.t==='O' || p.op.t==='D'){
+        g.append(el('rect',{x:p.x,y:yTop-16,width:p.w,height:yBot-yTop+32,rx:6,class:'c-gate c-'+p.op.t}));
+        g.append(el('text',{x:cx,y:(yTop+yBot)/2-6,class:'c-txt c-big'}, p.op.t==='O'?'Oracle':'Diffusion'));
+        g.append(el('text',{x:cx,y:(yTop+yBot)/2+12,class:'c-small'}, p.op.t==='O'?bits(target):'about mean'));
+      } else if(p.op.t==='M'){
+        for(let q=0;q<NQ;q++){
+          const y=wy(q);
+          g.append(el('rect',{x:p.x+5,y:y-14,width:p.w-10,height:28,rx:4,class:'c-gate c-M'}));
+          g.append(el('path',{d:`M${cx-9} ${y+4} a9 9 0 0 1 18 0`,class:'c-brk'}));
+          g.append(el('line',{x1:cx,y1:y+4,x2:cx+6,y2:y-7,class:'c-brk'}));
+          g.append(el('text',{x:p.x+p.w+3,y:y-8,class:'c-small',style:'text-anchor:start;font-weight:600;fill:var(--ink)'},(p.op.r>>q)&1));
+        }
+      }
+      svg.append(g);
+    });
+    const sc = $('circScroll'); requestAnimationFrame(()=>{ sc.scrollLeft = future.length ? Math.max(0, cursorX - sc.clientWidth/2) : sc.scrollWidth; });
+  }
+
+  // ---------- actions ----------
+  function push(t){
+    future = [];
+    if(t==='M'){
+      const r = Math.random(); let acc=0, pick=N-1;
+      for(let i=0;i<N;i++){ acc += state[i]**2; if(r < acc){ pick=i; break; } }
+      ops.push({t:'M', r:pick});
+    } else ops.push({t});
+    render();
+  }
+  function setTarget(i){ target=i; ops=[]; future=[]; render(); }
+
+  $('bH').onclick = ()=>push('H');
+  $('bO').onclick = ()=>push('O');
+  $('bD').onclick = ()=>push('D');
+  $('bI').onclick = ()=>{ future=[]; ops.push({t:'O'}); push('D'); };
+  $('bM').onclick = ()=>push('M');
+  $('bU').onclick = ()=>{ if(!ops.length) return; future.unshift(ops.pop()); render(); };
+  $('bF').onclick = ()=>{ if(!future.length) return; ops.push(future.shift()); render(); };
+  $('bR').onclick = ()=>{ ops=[]; future=[]; render(); };
+
+  $('bRun').onclick = ()=>{
+    future = [];
+    if(!isStandard()){ ops=[]; }
+    const plan = [];
+    if(!ops.length) plan.push('H');
+    let k = iterations();
+    if(ops.length && ops[ops.length-1].t==='O'){ plan.push('D'); k++; }
+    while(k < OPT){ plan.push('O','D'); k++; }
+    if(!plan.length) return;
+    running = true; updateButtons();
+    const step = reduce ? 120 : 850;
+    (function next(){
+      if(!plan.length){ running=false; render(); return; }
+      ops.push({t:plan.shift()}); render(); updateButtons();
+      setTimeout(next, step);
+    })();
+  };
+
+  // highlight mean line while hovering diffusion
+  ['bD','bI'].forEach(id=>{
+    $(id).addEventListener('mouseenter',()=>$('mean').classList.add('hot'));
+    $(id).addEventListener('mouseleave',()=>$('mean').classList.remove('hot'));
+    $(id).addEventListener('focus',()=>$('mean').classList.add('hot'));
+    $(id).addEventListener('blur',()=>$('mean').classList.remove('hot'));
+  });
+
+  // keyboard shortcuts
+  document.addEventListener('keydown',e=>{
+    if(e.target.closest && e.target.closest('input,textarea')) return;
+    const map = {h:'bH',o:'bO',d:'bD',i:'bI',m:'bM',arrowleft:'bU',arrowright:'bF'};
+    const id = map[e.key.toLowerCase()];
+    if(id && id.length && (e.key==='ArrowLeft'||e.key==='ArrowRight')) e.preventDefault();
+    if(id && !$(id).disabled && !e.metaKey && !e.ctrlKey) $(id).click();
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
