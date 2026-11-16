@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<!-- saved from url=(0114)file:///Users/AmigA/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Documents/ChatGPT/qc/factoring-tutorial.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factoring with repeating powers</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#f2f5fa;color:#14263d;font:16px/1.6 system-ui,sans-serif}
+header{background:#14263d;color:#fff;padding:clamp(28px,7vw,76px) 24px} .wrap,main{max-width:1100px;margin:auto}
+h1{font-size:clamp(36px,6vw,68px);line-height:1.05;letter-spacing:-.04em;margin:8px 0 16px}
+header p{max-width:640px;color:#dbe6f5;margin-bottom:0} .tag{color:#8de8d1;font-weight:750}
+main{padding:24px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:22px;align-items:start}
+section,aside{background:#fff;border:1px solid #dbe4ef;border-radius:18px;padding:clamp(16px,3vw,28px)}
+h2{margin:0 0 10px;line-height:1.2} h3{font-size:1.05rem;margin:0} p{margin:8px 0 16px}
+.inputs,.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:12px 0}
+label{display:grid;gap:4px;font-weight:650} input,button{font:inherit;border-radius:8px;padding:8px 12px}
+input{width:100px;border:1px solid #8190a2} button{cursor:pointer;border:1px solid #afbdce;background:white;color:#14263d;font-weight:650}
+.primary{background:#07594e;border-color:#07594e;color:white} button:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:3px solid #315cce;outline-offset:3px}
+#status{min-height:1.6em;color:#07594e;font-weight:650}
+#steps{padding-left:27px} #steps>li{padding:12px 0;border-top:1px solid #dbe4ef}
+#steps p{margin:4px 0} code{background:#edf2f8;padding:2px 5px;border-radius:4px}
+.powers{max-height:240px;overflow:auto;background:#edf2f8;border-radius:8px;padding:10px;font:14px/1.7 ui-monospace,monospace;overflow-wrap:anywhere}
+details{border-top:1px solid #dbe4ef;padding:12px 0} summary{cursor:pointer;font-weight:700}
+.tutorial{grid-column:1/-1}
+.tutorial article{max-width:760px;margin:0 auto}
+.tutorial h3{margin:24px 0 8px}
+.tutorial li{margin:8px 0}
+.tutorial .examples{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:14px}
+.tutorial .example{background:#f2f5fa;border-radius:12px;padding:16px}
+.tutorial .example h4{margin:0 0 8px}
+.tutorial pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.875rem}
+.tutorial a{display:inline-block;text-decoration:none;border-radius:8px;padding:8px 14px}
+@media(max-width:760px){main{grid-template-columns:1fr}}
+</style>
+</head><body><header><div class="wrap"><div class="tag">Number theory · Shor’s algorithm</div><h1>Factor a number<br>using repeating powers</h1><p>Find when the powers of a number first leave a remainder of 1. Then use that repeating pattern to look for factors of your starting number.</p></div></header>
+<main>
+<section class="tutorial" aria-labelledby="lesson">
+<article>
+<h2 id="lesson">Learn the method</h2>
+<p>Shor’s algorithm turns factoring into a search for a repeating pattern. Here you’ll find that pattern by hand, then use it to find two factors of a number.</p>
+
+<h3>What you need to know</h3>
+<ul>
+<li><strong>Composite number.</strong> A whole number with a factor bigger than 1 and smaller than itself. For example, 21 is composite because 3 × 7 = 21.</li>
+<li><strong>Power.</strong> The exponent tells you how many times to use the base as a factor. For example, <code>2^3 = 2 × 2 × 2 = 8</code>.</li>
+<li><strong>Remainder (mod).</strong> <code>b mod N</code> means the remainder when b is divided by N. Since 32 = 21 × 1 + 11, <code>32 mod 21 = 11</code>. If b is between 0 and N − 1, the remainder is b itself. For example, <code>8 mod 21 = 8</code>.</li>
+<li><strong>Greatest common divisor (GCD).</strong> The largest whole number that divides both numbers exactly. For example, the common factors of 9 and 21 are 1 and 3, so <code>gcd(9, 21) = 3</code>.</li>
+</ul>
+
+<h3>Follow these six steps</h3>
+<ol>
+<li><strong>Choose a composite number N from 15 to 50.</strong> If N is even, use 2 as your first factor and go to step 6. Choose an odd composite number to practice finding a period.</li>
+<li><strong>Choose a whole number a between 2 and N − 1.</strong> Calculate <code>gcd(a, N)</code>. If it is bigger than 1, use it as your first factor and go to step 6. If it is 1, continue.</li>
+<li><strong>Find the period r.</strong> List the powers <code>a^1, a^2, a^3, …</code>. Calculate <code>a^1 mod N</code>, <code>a^2 mod N</code>, <code>a^3 mod N</code>, and so on. Stop at the first remainder of 1. The exponent of that power is r.</li>
+<li><strong>Find the halfway remainder x.</strong> If r is odd, return to step 2 and choose a different a. If r is even, look up the remainder at exponent r/2. That gives <code>x = a^(r/2) mod N</code>.</li>
+<li><strong>Find a factor.</strong> Calculate <code>gcd(x − 1, N)</code> and <code>gcd(x + 1, N)</code>. Use an answer greater than 1 and smaller than N. If neither answer works, return to step 2 and choose a different a.</li>
+<li><strong>Find the other factor and check.</strong> Divide N by your first factor. Multiply the two factors to check that you get N.</li>
+</ol>
+
+<h3>Worked examples</h3>
+<div class="examples">
+<div class="example">
+<h4>Factor 21 with a = 2</h4>
+<p><code>gcd(2, 21) = 1</code>, so list the remainders.</p>
+<pre>2^1 mod 21 = 2
+2^2 mod 21 = 4
+2^3 mod 21 = 8
+2^4 mod 21 = 16
+2^5 mod 21 = 11
+2^6 mod 21 = 1</pre>
+<p>The first 1 gives <strong>r = 6</strong>. Halfway is exponent 3, so <strong>x = 8</strong>.</p>
+<p><code>gcd(7, 21) = 7</code><br><code>gcd(9, 21) = 3</code></p>
+<p>Divide 21 by 7 to get 3. Check <strong>7 × 3 = 21</strong>.</p>
+</div>
+<div class="example">
+<h4>Factor 35 with a = 6</h4>
+<p><code>gcd(6, 35) = 1</code>, so list the remainders.</p>
+<pre>6^1 mod 35 = 6
+6^2 mod 35 = 1</pre>
+<p>The first 1 gives <strong>r = 2</strong>. Halfway is exponent 1, so <strong>x = 6</strong>.</p>
+<p><code>gcd(5, 35) = 5</code><br><code>gcd(7, 35) = 7</code></p>
+<p>Divide 35 by 5 to get 7. Check <strong>5 × 7 = 35</strong>.</p>
+</div>
+</div>
+
+<h3>Why the halfway step works</h3>
+<p>When r is even, squaring the halfway power gives the full power. Since <code>x = a^(r/2) mod N</code> and <code>a^r mod N = 1</code>, we get <code>x^2 mod N = 1</code>.</p>
+<p>So N divides <code>x^2 − 1 = (x − 1)(x + 1)</code>. The two GCDs check which factors of N are shared with x − 1 and x + 1.</p>
+<a class="primary" href="file:///Users/AmigA/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Documents/ChatGPT/qc/factoring-tutorial.html#try">Practice with your own numbers ↓</a>
+</article>
+</section>
+<section aria-labelledby="try"><h2 id="try">Try it step by step</h2>
+<div class="actions"><button type="button" data-n="21" data-a="2">Example · 21</button><button type="button" data-n="35" data-a="6">Example · 35</button></div>
+<form id="form"><div class="inputs">
+<label>Number N<input id="number" type="number" min="15" max="50" step="1" value="21" required=""></label>
+<label>Base a<input id="base" type="number" min="2" max="20" step="1" value="2" required=""></label>
+<button class="primary">Start</button></div></form>
+<div class="actions"><button id="next" type="button" class="primary" disabled="">Reveal next step</button></div>
+<p id="status" role="status">Choose an example or enter your own numbers.</p>
+<ol id="steps"></ol>
+</section>
+<aside aria-labelledby="guide"><h2 id="guide">Quick reference</h2>
+<details open=""><summary>Remainder · mod</summary><p><code>b mod N</code> means the remainder after dividing b by N. Since 32 = 21 × 1 + 11, <code>32 mod 21 = 11</code>.</p></details>
+<details><summary>Powers</summary><p>In <code>2^3</code>, the exponent 3 tells you to multiply three copies of 2. The result is 8.</p></details>
+<details><summary>Greatest common divisor · gcd</summary><p>The largest whole number that divides both numbers exactly. For example, <code>gcd(9, 21) = 3</code>.</p></details>
+<details><summary>Composite numbers</summary><p>A composite number has a factor greater than 1 and smaller than itself. For example, 21 is composite because 3 × 7 = 21.</p></details>
+<details><summary>Why the halfway power works</summary><p>When r is even, squaring the halfway remainder x gives <code>x^2 mod N = 1</code>. So N divides <code>x^2 − 1 = (x − 1)(x + 1)</code>. The GCDs check whether either term shares a usable factor with N.</p><p>Shor’s quantum routine helps find r. This activity finds it by listing powers.</p></details>
+</aside>
+</main>
+<script>
+const form = document.querySelector('#form');
+const number = document.querySelector('#number');
+const base = document.querySelector('#base');
+const next = document.querySelector('#next');
+const steps = document.querySelector('#steps');
+const status = document.querySelector('#status');
+let pending = [];
+
+function gcd(a, b) {
+  while (b !== 0) [a, b] = [b, a % b];
+  return a;
+}
+
+function lesson(n, a) {
+  const result = [];
+  const add = (title, explanation, powers = []) => result.push({title, explanation, powers});
+  const finish = factor => add('Check your factors', n + ' ÷ ' + factor + ' = ' + n/factor + '. Check: ' + factor + ' × ' + n/factor + ' = ' + n + '.');
+  add('Choose a composite number', 'N = ' + n + (n % 2 === 0 ? ' is even, so 2 is a factor.' : ' is odd. Continue with a base a.'));
+  if (n % 2 === 0) {
+    finish(2);
+    return result;
+  }
+  const common = gcd(a, n);
+  add('Check the base', 'gcd(' + a + ', ' + n + ') = ' + common + (common === 1 ? '. List the powers to find the period.' : '. You found a factor.'));
+  if (common > 1) {
+    finish(common);
+    return result;
+  }
+
+  const remainders = [1];
+  const powers = [];
+  let power = 1n;
+  do {
+    power *= BigInt(a);
+    const remainder = Number(power % BigInt(n));
+    powers.push(a + '^' + remainders.length + ' mod ' + n + ' = ' + power + ' mod ' + n + ' = ' + remainder);
+    remainders.push(remainder);
+  } while (remainders.at(-1) !== 1);
+
+  const r = powers.length;
+  add('Find the period', 'The first remainder of 1 occurs at exponent ' + r + ', so r = ' + r + '.', powers);
+  if (r % 2 !== 0) {
+    add('Choose another base', 'The period is odd. Change a and select Start.');
+    return result;
+  }
+  const x = remainders[r / 2];
+  add('Find the halfway remainder', 'r ÷ 2 = ' + r / 2 + '. So x = ' + a + '^' + r / 2 + ' mod ' + n + ' = ' + x + '.');
+  const lower = gcd(x - 1, n);
+  const upper = gcd(x + 1, n);
+  const factor = [lower, upper].find(value => value > 1 && value < n);
+  add('Check both GCDs', 'gcd(' + (x - 1) + ', ' + n + ') = ' + lower + '. gcd(' + (x + 1) + ', ' + n + ') = ' + upper + '. ' +
+    (factor ? factor + ' is greater than 1 and smaller than ' + n + '.' : 'Choose a different a and select Start.'));
+  if (factor) finish(factor);
+  return result;
+}
+
+function reveal() {
+  const step = pending.shift();
+  if (!step) return;
+  const row = document.createElement('li');
+  const heading = document.createElement('h3');
+  heading.textContent = step.title;
+  const copy = document.createElement('p');
+  copy.textContent = step.explanation;
+  row.append(heading, copy);
+  if (step.powers.length) {
+    const list = document.createElement('div');
+    list.className = 'powers';
+    list.tabIndex = 0;
+    list.setAttribute('aria-label', 'Powers and their remainders');
+    for (const equation of step.powers) {
+      const line = document.createElement('div');
+      line.textContent = equation;
+      list.append(line);
+    }
+    row.append(list);
+  }
+  steps.append(row);
+  next.disabled = !pending.length;
+  status.textContent = step.title + '. ' + (pending.length ? 'Reveal the next step when you’re ready.' : step.explanation);
+}
+
+form.addEventListener('submit', event => {
+  event.preventDefault();
+  const n = number.valueAsNumber;
+  steps.replaceChildren();
+  pending = [];
+  next.disabled = true;
+  if (!Array.from({length: Math.floor(Math.sqrt(n)) - 1}, (_, index) => index + 2).some(divisor => n % divisor === 0)) {
+    status.textContent = n + ' is prime. Choose a composite number, such as 21 or 35.';
+    return;
+  }
+  pending = lesson(n, base.valueAsNumber);
+  reveal();
+});
+form.addEventListener('input', () => {
+  base.max = number.valueAsNumber - 1;
+  steps.replaceChildren();
+  pending = [];
+  next.disabled = true;
+  status.textContent = 'Select Start to use these numbers.';
+});
+next.addEventListener('click', reveal);
+for (const button of document.querySelectorAll('[data-n]')) {
+  button.addEventListener('click', () => {
+    number.value = button.dataset.n;
+    base.max = Number(number.value) - 1;
+    base.value = button.dataset.a;
+    form.requestSubmit();
+  });
+}
+</script>
+
+</body></html>
