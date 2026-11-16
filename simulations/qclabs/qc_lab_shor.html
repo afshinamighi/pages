@@ -179,8 +179,8 @@ button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
   <header>
     <h1>Shor Factoring Lab</h1>
     <p class="sub">Every whole number splits into prime factors, for example 15 = 3 × 5. For small numbers this is easy, but for numbers with hundreds of digits the best known classical methods take far too long to be practical. That difficulty is what keeps RSA encryption safe. Shor's algorithm turns factoring into a different question. Pick a number a, list a, a², a³, … and keep only the remainder after dividing by N. The list starts repeating, and the length of one repeat is called the <strong>period r</strong>. 
-      Once r is known, a few lines of classical arithmetic give the factors.
-      <a href="qc_lab_shor_factoring.html">(Check this tutorial here)</a> 
+      Once r is known, a few lines of classical arithmetic give the factors
+      <a href="qc_lab_shor_factoring.html">(Check this tutorial here).</a><br>
       Finding r is the hard part, and that is the quantum computer's job: <strong>it computes the sequence for all 16 values of x at once, and the inverse quantum Fourier transform turns the repetition into sharp peaks that one measurement can read</strong>. Its running time grows only polynomially with the number of digits, far slower than the best classical methods. On this page you factor N = 15 with 8 qubits: 4 counting qubits that hold x and 4 work qubits that hold a<sup>x</sup> mod 15. Apply the steps yourself, step back and forward, watch the state change, and see the classical finish turn the measured value into 3 × 5. The gate-level circuits at the bottom show what the multiplications and the inverse QFT are made of.</p>
   </header>
 
