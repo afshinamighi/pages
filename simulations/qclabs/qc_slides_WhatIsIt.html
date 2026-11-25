@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quantum Computing Slides</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday learning: a calm lecture deck for programmers, one idea per slide
+   IDEA a scientific plate: precise drawings in two inks with callouts, like a physics textbook figure
+   PICTURE each slide's working diagram (circuit, amplitude bars, qubit circle) is the large figure
+   COLOUR white paper, ink #10131a, prussian blue for 0 and positive, carmine for 1, negative and "on"
+   TYPE Literata 600 for titles, Literata for text, monospace for bits and code
+   LAYOUT one slide per screen, sideways snap; title across the top, figure and controls below; stacks under 800px */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0f1217);--ink:light-dark(#10131a,#e9ecf2);--mute:light-dark(#5a6070,#9ba4b4);--rule:light-dark(#dde1e8,#2b313c);--paper:light-dark(#f3f5f8,#171b23);--blue:light-dark(#0b4f8a,#72b4f3);--red:light-dark(#c1121f,#ff6b6f);--off:light-dark(#c3c9d3,#3c4350);--bt:color-mix(in srgb,var(--blue) 13%,transparent);--rt:color-mix(in srgb,var(--red) 13%,transparent);--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.5 Literata,Georgia,serif;overflow:hidden}
+#deck{height:100%;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+#deck::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;display:flex;padding:clamp(20px,3.4vw,52px) max(4.5vw,16px) 92px}
+.wrap{margin:auto;width:100%;max-width:1240px;display:flex;flex-direction:column;gap:18px}
+h1{font-size:clamp(36px,5.4vw,60px);line-height:1.05;letter-spacing:-.02em;font-weight:600;margin:0;text-wrap:balance}
+h2{font-size:clamp(28px,3.6vw,44px);line-height:1.05;letter-spacing:-.02em;font-weight:600;margin:0;text-wrap:balance}
+h3{font-size:20px;line-height:1.2;margin:0 0 6px;font-weight:600}
+p{margin:0}
+.lead{font-size:clamp(17px,1.6vw,21px);color:var(--mute);max-width:62ch}
+ul.pts{margin:0;padding-left:1.1em;display:grid;gap:6px}
+.two{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:start}
+.two.r{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:16px}
+.panel{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:18px}
+.panel.plain{background:none}
+.mute{color:var(--mute)}.small{font-size:15px}
+.b{color:var(--blue);font-weight:600}.r{color:var(--red);font-weight:600}
+code,.mono{font-family:var(--mono);font-size:.92em}
+pre{margin:0;overflow-x:auto;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:14px;font:14px/1.5 var(--mono)}
+a{color:var(--blue)}
+button{font:inherit;font-size:16px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--blue)}
+button:focus-visible,select:focus-visible,input:focus-visible,.sw:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+button.on{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+button:disabled{opacity:.45;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bit{width:48px;padding:0;font:700 20px var(--mono)}
+.bit.on{background:var(--red);border-color:var(--red);color:#fff}
+input[type=range]{width:100%;height:44px;accent-color:var(--blue);margin:0}
+label.ctl{display:grid;gap:2px;font-size:15px;color:var(--mute)}
+label.ctl b{color:var(--ink);font-family:var(--mono)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:6px 12px;border-bottom:1px solid var(--rule);text-align:center}
+th{font-weight:600;font-size:15px;color:var(--mute)}
+tr.hl td{background:var(--bt)}
+td.one{color:var(--red);font-weight:700}
+td.l,th.l{text-align:left}
+.rev{display:none}
+table.show .rev{display:table-cell}
+.rev{background:var(--rt)}
+.big{font-size:clamp(28px,3.4vw,40px);font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.fig{position:relative;width:100%}
+svg{display:block;max-width:100%}
+svg text{font-family:Literata,Georgia,serif;paint-order:stroke;stroke:var(--bg);stroke-width:4px;fill:var(--ink)}
+.wire{fill:none;stroke:var(--off);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s}
+.wire.hi,.jn.hi{stroke:var(--red)}
+.jn{fill:var(--off);stroke:var(--off)}.jn.hi{fill:var(--red)}
+.gate{fill:var(--bg);stroke:var(--ink);stroke-width:2.5}
+.gl{fill:none;stroke:var(--ink);stroke-width:2.5}
+.glab{font-size:14px;font-weight:600}
+.lamp{fill:var(--paper);stroke:var(--ink);stroke-width:2;transition:fill .25s}
+.lamp.hi{fill:var(--red);stroke:var(--red)}
+svg text.lv{font:700 20px var(--mono);text-anchor:middle;stroke:none;pointer-events:none}
+svg text.lv.on{fill:#fff}
+.ilab{font-size:18px;font-weight:600}
+.sw{cursor:pointer;outline:none}
+.box{fill:none;stroke:var(--mute);stroke-dasharray:6 5;stroke-width:1.5}
+.blab{font-size:14px;fill:var(--mute)}
+.ax{stroke:var(--off);stroke-width:1.5}
+.dash{stroke:var(--mute);stroke-width:2;stroke-dasharray:6 6;fill:none}
+#bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:8px max(2vw,12px);background:color-mix(in srgb,var(--bg) 92%,transparent);border-top:1px solid var(--rule);backdrop-filter:blur(6px);z-index:5}
+#bar select{font:inherit;font-size:16px;min-height:44px;border-radius:10px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);padding:0 10px;flex:1;max-width:420px}
+#count{font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap;margin-left:auto}
+#prog{position:fixed;left:0;top:0;height:4px;background:var(--red);z-index:6;transition:width .3s}
+.note{display:none;border:1px dashed var(--mute);border-radius:10px;padding:10px 14px;font-size:15px;color:var(--mute)}
+.note::before{content:"Speaker notes: ";font-weight:600;color:var(--ink)}
+body.notes .note{display:block}
+.hero{width:100%;max-height:44vh}
+.sk{fill:var(--paper);stroke:var(--ink);stroke-width:2.5}
+.knob{fill:var(--red)}
+.ring{fill:none;stroke:var(--ink);stroke-width:2.5}
+.arrow{stroke:var(--red);stroke-width:5;fill:none;stroke-linecap:round}
+.cap{font-size:19px;text-anchor:middle;fill:var(--mute)}
+.agenda{display:flex;flex-wrap:wrap;gap:8px}
+.agenda button{min-height:40px;font-size:15px}
+.meter{height:14px;border-radius:7px;background:var(--paper);border:1px solid var(--rule);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--red);transition:width .3s}
+.tl{position:relative;height:230px;margin:8px 0;padding:0 28px}
+.tl .era{position:absolute;top:0;bottom:30px;border-radius:8px}
+.tl .era span{position:absolute;bottom:6px;left:10px;font-size:14px;color:var(--mute)}
+.tl .axis{position:absolute;left:28px;right:28px;bottom:30px;height:2px;background:var(--ink)}
+.tl .ev{position:absolute;transform:translateX(-50%);min-height:36px;padding:0 6px;font:600 14px var(--mono);border-radius:8px;z-index:1}
+.tl .ev.q{color:var(--red)}
+.tl .ev.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tl .stem{position:absolute;width:1px;background:var(--off);bottom:30px}
+.tl .yr{position:absolute;bottom:4px;transform:translateX(-50%);font-size:13px;color:var(--mute)}
+.qcard{text-align:left;min-height:120px;padding:16px;display:grid;align-content:start;gap:6px;background:var(--paper)}
+.qcard small{color:var(--mute);font-size:15px}
+.qcard.open{background:var(--bt);border-color:var(--blue)}
+.dots{display:grid;gap:5px;justify-content:start}
+.dots i{width:14px;height:14px;border-radius:50%;background:var(--blue)}
+.pipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:var(--mono)}
+.pipe span{border:1px solid var(--rule);border-radius:8px;padding:4px 10px;background:var(--bg)}
+.pipe span.f{border-color:var(--blue);color:var(--blue)}
+.pipe span.res{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips span{font:13px var(--mono);padding:3px 5px;border-radius:5px;background:var(--paper);border:1px solid var(--rule)}
+.chips span.on{background:var(--red);color:#fff;border-color:var(--red)}
+.gcard{display:grid;gap:8px;align-content:start}
+.gcard svg{width:100%;max-width:220px}
+.gcard table td,.gcard table th{padding:3px 8px;font-size:14px}
+.stack{display:grid;gap:4px}
+.stack div{border-radius:8px;padding:8px 14px;background:var(--paper);border:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stack div:nth-child(odd){background:var(--bt)}
+.rgrid{display:grid;grid-template-columns:3.6em repeat(5,minmax(0,1fr));gap:8px;align-items:center;justify-items:center}
+.rgrid .rl{justify-self:start;font-weight:600;color:var(--mute)}
+.fa{width:100%;border:2px solid var(--ink);border-radius:10px;padding:8px 4px;text-align:center;display:grid;gap:2px;font-size:13px;transition:background .3s,border-color .3s}
+.fa b{font-size:16px}
+.fa.c{border-color:var(--red);background:var(--rt)}
+.sbit{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font:700 20px var(--mono);border:1px solid var(--rule);transition:background .3s}
+.sbit.on{background:var(--red);color:#fff;border-color:var(--red)}
+.gr{display:grid;grid-template-columns:7.5em minmax(0,1fr) 9em;gap:10px;align-items:center;font-size:15px}
+.gr .t{height:22px;background:var(--paper);border-radius:5px;overflow:hidden}
+.gr .t i{display:block;height:100%;background:var(--blue);transition:width .3s}
+.gr.hot .t i{background:var(--red)}
+.gr .v{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.race{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.race .panel.win{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.amp{display:grid;grid-template-columns:4.6em minmax(0,1fr) 4.2em;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
+.amp .tr{position:relative;height:28px;background:var(--paper);border-radius:6px}
+.amp .tr::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:var(--mute)}
+.amp .tr i{position:absolute;top:4px;bottom:4px;border-radius:4px;background:var(--blue);transition:left .4s,width .4s,background .4s}
+.amp .tr i.neg{background:var(--red)}
+.amp .k{font-family:var(--mono)}
+.amp .v{text-align:right;font-family:var(--mono);font-size:15px}
+.stages{display:flex;flex-wrap:wrap;gap:6px}
+.stages button{min-width:44px;padding:0 12px}
+.verdict{font-size:20px;font-weight:600;min-height:1.5em}
+.boxes{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;max-width:640px}
+.boxes button{aspect-ratio:1;padding:0;font:600 15px var(--mono);background:var(--paper)}
+.boxes button.op{background:var(--bg);color:var(--mute);border-style:dashed}
+.boxes button.win{background:var(--red);color:#fff;border-color:var(--red)}
+#gbars{position:relative;height:clamp(200px,34vh,300px);display:flex;gap:2px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+#gbars .gb{flex:1;position:relative;cursor:pointer;border-radius:3px}
+#gbars .gb:hover{background:var(--paper)}
+#gbars .gb i{position:absolute;left:12%;right:12%;background:var(--blue);transition:all .4s;border-radius:2px}
+#gbars .gb.t i{background:var(--red)}
+#gbars .gb.t{background:var(--rt)}
+#gbars .gb.got{outline:3px solid var(--ink)}
+#gbars .zero{position:absolute;left:0;right:0;top:50%;height:1.5px;background:var(--mute);pointer-events:none}
+#gbars .mean{position:absolute;left:0;right:0;border-top:2px dashed var(--ink);pointer-events:none;transition:top .4s}
+#gbars .mean span{position:absolute;right:4px;top:-24px;font-size:13px;background:var(--bg);padding:0 4px}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(9em,1fr));gap:10px}
+.stat div{border-top:2px solid var(--ink);padding-top:6px}
+.stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+.stat span{font-size:14px;color:var(--mute)}
+.mini{display:flex;align-items:flex-end;gap:3px;height:70px;margin:8px 0;position:relative;border-bottom:1.5px solid var(--mute)}
+.mini i{flex:1;background:var(--blue);border-radius:2px}
+.mini i.t{background:var(--red)}
+.mini.neg{align-items:center;border:0}
+.mini.neg::after{content:"";position:absolute;left:0;right:0;top:50%;height:1.5px;background:var(--mute)}
+.mini.neg i{align-self:auto;position:relative}
+#qsvg{width:100%;max-width:440px;aspect-ratio:1;touch-action:none;cursor:grab;margin:auto}
+.pb{display:grid;grid-template-columns:3em minmax(0,1fr) 3.6em;gap:8px;align-items:center;font-variant-numeric:tabular-nums}
+.pb .t{height:20px;background:var(--paper);border-radius:5px;overflow:hidden}
+.pb .t i{display:block;height:100%;transition:width .3s}
+.qwire{display:flex;align-items:center;gap:0;min-height:64px;position:relative;padding:0 10px;overflow-x:auto}
+.qwire::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:var(--ink);z-index:0}
+.qwire span{position:relative;z-index:1;margin-right:14px;flex:none;display:grid;place-items:center;min-width:44px;height:44px;border:2px solid var(--ink);background:var(--bg);border-radius:6px;font:700 18px var(--mono)}
+.qwire span.k{border:0;background:var(--bg);font-weight:400;min-width:auto;padding:0 6px}
+.hist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:end;height:150px;border-bottom:1.5px solid var(--mute)}
+.hist div{display:flex;flex-direction:column;justify-content:flex-end;height:100%;text-align:center;font-size:14px}
+.hist i{display:block;background:var(--blue);border-radius:4px 4px 0 0;transition:height .3s;margin:0 18%}
+.hist div+div i{background:var(--red)}
+.exp{display:grid;gap:8px}
+.exp .hist{height:70px;gap:6px}
+.exp .hist div{font-size:13px}
+.coin{display:flex;gap:18px;flex-wrap:wrap}
+.kg{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.kc{border:1px solid var(--rule);border-radius:8px;padding:3px 6px;cursor:pointer;display:grid;gap:4px;transition:background .4s}
+.kc:hover{border-color:var(--blue)}
+.kc.w{border-color:var(--red);box-shadow:inset 0 0 0 1.5px var(--red)}
+.kc.got{outline:3px solid var(--ink)}
+.kc .h{display:flex;justify-content:space-between;gap:4px;font:13px var(--mono);font-variant-numeric:tabular-nums}
+.kc .tr{position:relative;height:9px;background:var(--bg);border-radius:4px}
+.kc .tr::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--mute)}
+.kc .tr i{position:absolute;top:2px;bottom:2px;border-radius:3px;background:var(--blue);transition:left .4s,width .4s}
+.kc .tr i.neg{background:var(--red)}
+@media(max-width:900px){.kg{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pic{margin:0;display:grid;gap:6px;justify-items:center;text-align:center}
+.pic svg{width:100%;max-height:220px}
+.pic figcaption{font-size:16px}
+.fm{font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Literata,Georgia,serif;font-style:normal;white-space:nowrap}
+.ov{text-decoration:overline;text-decoration-thickness:1.5px;text-underline-offset:0}
+.ov2{border-top:1.5px solid currentColor;padding-top:4px}
+.ov2 .ov{text-decoration:none;border-top:1.5px solid currentColor}
+.eq{display:grid;gap:6px;margin-top:6px}
+math{font-size:20px}
+.coin svg{width:150px}
+.pairs{font:600 18px var(--mono);letter-spacing:.05em;min-height:1.6em}
+@media(max-width:800px){.two,.two.r{grid-template-columns:minmax(0,1fr)}.boxes{grid-template-columns:repeat(4,minmax(0,1fr))}.race{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.slide{padding-bottom:110px}table{font-size:13px}th,td{padding:5px 6px}.gr{grid-template-columns:5.5em minmax(0,1fr) 6.5em;font-size:13px}.rgrid{grid-template-columns:2.4em repeat(5,minmax(0,1fr));gap:4px}.sbit,.rgrid .bit{width:40px;height:40px;min-height:40px}#bar .hide-s{display:none}.tl .ev{font-size:12px;padding:0 3px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor" style="fill:var(--mute)"/></marker>
+  <marker id="ahr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--red)"/></marker>
+ </defs>
+</svg>
+
+<main id="deck">
+
+<!-- ============ INTRODUCTION ============ -->
+<section class="slide" id="title" data-sec="Introduction" data-t="Title">
+<div class="wrap">
+ <svg class="hero" viewBox="0 0 900 305" role="img" aria-label="A classical bit drawn as a two-position switch, next to a qubit drawn as an arrow inside a circle">
+  <rect x="90" y="95" width="200" height="110" rx="55" class="sk"/>
+  <text x="140" y="164" style="font:600 36px var(--mono)" text-anchor="middle">0</text>
+  <circle cx="235" cy="150" r="42" class="knob"/>
+  <text x="235" y="164" style="font:600 36px var(--mono);fill:#fff;stroke:none" text-anchor="middle">1</text>
+  <text x="190" y="292" class="cap">a bit: exactly 0 or 1</text>
+  <path d="M340 150H492" class="dash" marker-end="url(#ah)"/>
+  <line x1="520" y1="150" x2="790" y2="150" class="ax"/>
+  <line x1="650" y1="32" x2="650" y2="268" class="ax"/>
+  <circle cx="650" cy="150" r="115" class="ring"/>
+  <path d="M744.2 84V150M744.2 84H650" class="dash"/>
+  <path d="M650 150L735 90" class="arrow" marker-end="url(#ahr)"/>
+  <text x="800" y="157" style="font-size:22px">|0⟩</text>
+  <text x="650" y="24" style="font-size:22px" text-anchor="middle">|1⟩</text>
+  <text x="650" y="292" class="cap">a qubit: an arrow with a 0-part and a 1-part</text>
+ </svg>
+ <h1>Quantum computing, from the bit up</h1>
+ <p class="lead">A first look for programmers: what computing is, how classical circuits are built from tiny gates, and where quantum circuits do something new.</p>
+ <nav class="agenda" id="agenda" aria-label="Sections"></nav>
+ <p class="small mute">Navigate with ← → or the bar below. Press N for speaker notes, F for full screen.</p>
+ <aside class="note">Welcome. Promise: no heavy maths, everything is built from things they already know as programmers. Click any section to jump.</aside>
+</div></section>
+
+<section class="slide" id="why" data-sec="Introduction" data-t="Why quantum?">
+<div class="wrap">
+ <h2>Why bother with quantum computers?</h2>
+ <div class="two">
+  <div class="panel">
+   <h3>Try storing a quantum state on a normal computer</h3>
+   <p class="small mute">To simulate n qubits exactly you need 2ⁿ numbers, each about 16 bytes.</p>
+   <label class="ctl" for="memn">Number of qubits: <b id="memnv">30</b><input id="memn" type="range" min="1" max="64" value="30"></label>
+   <div class="stat" style="margin:6px 0 12px"><div><b id="memc">1,073,741,824</b><span>numbers to store</span></div><div><b id="memb">16 GB</b><span>memory needed</span></div></div>
+   <div class="meter"><i id="memm"></i></div>
+   <p id="memv" style="margin-top:10px;font-weight:600"></p>
+  </div>
+  <div class="panel plain" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+   <figure class="pic">
+    <svg viewBox="0 0 300 250" role="img" aria-label="A classical bit: only two points, 0 at the top and 1 at the bottom, nothing in between">
+     <circle cx="150" cy="120" r="95" class="ax" style="fill:none;stroke-dasharray:4 6"/>
+     <line x1="150" y1="25" x2="150" y2="215" class="ax"/>
+     <circle cx="150" cy="25" r="13" style="fill:var(--blue)"/><circle cx="150" cy="215" r="13" style="fill:var(--red)"/>
+     <text x="172" y="31" style="font:700 20px var(--mono)">0</text><text x="172" y="222" style="font:700 20px var(--mono)">1</text>
+     <text x="150" y="126" text-anchor="middle" style="font-size:15px;fill:var(--mute)">nothing in between</text>
+    </svg>
+    <figcaption><b>Bit</b>: one of two points<br><span class="fm">b ∈ {0, 1}</span></figcaption>
+   </figure>
+   <figure class="pic">
+    <svg viewBox="0 0 300 250" role="img" aria-label="Bloch sphere: a qubit state is an arrow to any point on a sphere, with 0 at the north pole and 1 at the south pole">
+     <circle cx="150" cy="120" r="95" class="ring"/>
+     <path d="M55 120A95 28 0 0 1 245 120" class="dash" style="stroke-width:1.5"/>
+     <path d="M55 120A95 28 0 0 0 245 120" style="fill:none;stroke:var(--ink);stroke-width:1.5"/>
+     <line x1="150" y1="25" x2="150" y2="215" class="ax"/>
+     <line x1="150" y1="120" x2="78" y2="146" class="ax" marker-end="url(#ah)"/><text x="64" y="160" style="font-size:15px;font-style:italic">x</text>
+     <line x1="150" y1="120" x2="238" y2="141" class="ax" marker-end="url(#ah)"/><text x="246" y="152" style="font-size:15px;font-style:italic">y</text>
+     <path d="M205.7 72.7V133.8M150 120L205.7 133.8" class="dash" style="stroke-width:1.5"/>
+     <line x1="150" y1="120" x2="198" y2="79" class="arrow" marker-end="url(#ahr)"/>
+     <circle cx="150" cy="25" r="6" style="fill:var(--blue)"/><circle cx="150" cy="215" r="6" style="fill:var(--red)"/>
+     <text x="162" y="24" style="font-size:18px">|0⟩</text><text x="162" y="232" style="font-size:18px">|1⟩</text>
+     <text x="161" y="80" style="font-size:16px;font-style:italic;fill:var(--red)">θ</text>
+     <text x="168" y="150" style="font-size:16px;font-style:italic;fill:var(--blue)">φ</text>
+     <text x="214" y="70" style="font-size:16px">|ψ⟩</text>
+    </svg>
+    <figcaption><b>Qubit</b>: any point on the Bloch sphere<br><span class="fm">|ψ⟩ = cos(θ⁄2)|0⟩ + e<sup>iφ</sup> sin(θ⁄2)|1⟩</span></figcaption>
+   </figure>
+  </div>
+ </div>
+ <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(14em,1fr))">
+  <div><h3>Chips are reaching atoms</h3><p>Transistor features are now only tens of atoms across. At that scale quantum effects stop being noise you can ignore.</p></div>
+  <div><h3>Nature is quantum</h3><p>Feynman, 1981: to simulate molecules and materials efficiently, use a machine that follows the same rules as nature. The slider shows why.</p></div>
+  <div><h3>Some problems get faster</h3><p>Searching, factoring large numbers, chemistry. Not everything: your browser and spreadsheet will not speed up.</p></div>
+ </div>
+ <aside class="note">Compare the pictures first: a bit lives on two points only, a qubit anywhere on the sphere (later we use one flat slice of it). Then move the slider to 50: no computer on Earth can hold that. A 50-qubit chip holds it "for free". That is Feynman's argument in one picture.</aside>
+</div></section>
+
+<section class="slide" id="history" data-sec="Introduction" data-t="A short history">
+<div class="wrap">
+ <h2>Ninety years from bits to qubits</h2>
+ <p class="lead">Click a year.</p>
+ <div class="tl" id="tl"></div>
+ <div class="panel" id="tld" aria-live="polite"></div>
+ <aside class="note">Point out the gap: the quantum ideas (1981–1996) came long before the hardware (2016 onward). Theory first, machines later; the same happened with Turing.</aside>
+</div></section>
+
+<!-- ============ COMPUTING ============ -->
+<section class="slide" id="whatis" data-sec="Computing" data-t="What is computing?">
+<div class="wrap">
+ <h2>What is computing, actually?</h2>
+ <p class="lead">Is each of these computing? Vote first, then click to see one answer.</p>
+ <div class="cols" id="qcards"></div>
+ <div class="panel"><p style="font-size:20px"><b>Computing</b> is turning input symbols into output symbols by following rules. The rules themselves are built by <span class="r">composing</span> a few basic steps, and the whole thing serves a <span class="b">goal</span> we care about.</p></div>
+ <aside class="note">Let the audience argue about the recipe and thermostat. The point: computing is not "doing arithmetic"; it is rule-following over symbols.</aside>
+</div></section>
+
+<section class="slide" id="compose" data-sec="Computing" data-t="Composition">
+<div class="wrap">
+ <h2>Big operations are small ones, composed</h2>
+ <div class="cols">
+  <div class="panel">
+   <h3>Multiply = repeated addition</h3>
+   <div class="row" style="flex-wrap:nowrap"><label class="ctl" for="ma" style="flex:1">a = <b id="mav">4</b><input id="ma" type="range" min="1" max="8" value="4"></label><label class="ctl" for="mb" style="flex:1">b = <b id="mbv">3</b><input id="mb" type="range" min="1" max="6" value="3"></label></div>
+   <div class="dots" id="mdots"></div>
+   <p id="mtxt" class="mono" style="margin-top:10px"></p>
+   <p id="ptxt" class="small mute" style="margin-top:6px"></p>
+  </div>
+  <div class="panel">
+   <h3>Area (integral) = many tiny additions</h3>
+   <svg id="riem" viewBox="0 0 340 230" role="img" aria-label="Area under the curve y equals x squared, approximated by rectangles"></svg>
+   <label class="ctl" for="rn">Rectangles: <b id="rnv">6</b><input id="rn" type="range" min="1" max="60" value="6"></label>
+   <div class="eq">
+    <math display="block"><mrow><msub><mi>S</mi><mi>n</mi></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msup><mrow><mo>(</mo><mfrac><mi>i</mi><mi>n</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup><mo>·</mo><mfrac><mn>1</mn><mi>n</mi></mfrac></mrow></math>
+    <p class="small mute" style="text-align:center">each rectangle: width 1/n, height (i/n)²</p>
+    <p id="rtxt" class="mono" style="text-align:center"></p>
+    <math display="block"><mrow><munder><mo movablelimits="false">lim</mo><mrow><mi>n</mi><mo>→</mo><mi>∞</mi></mrow></munder><msub><mi>S</mi><mi>n</mi></msub><mo>=</mo><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><msup><mi>x</mi><mn>2</mn></msup><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><mfrac><mn>1</mn><mn>3</mn></mfrac></mrow></math>
+   </div>
+  </div>
+  <div class="panel">
+   <h3>Functions compose, and order matters</h3>
+   <p class="small mute">f(x) = x + 1, &nbsp; g(x) = 2·x</p>
+   <label class="ctl" for="cx">x = <b id="cxv">3</b><input id="cx" type="range" min="0" max="10" value="3"></label>
+   <div class="pipe" id="pipe1" style="margin:6px 0"></div>
+   <div class="pipe" id="pipe2"></div>
+   <p class="small mute" style="margin-top:10px">This is every program you have written: small functions, called in a chosen order.</p>
+  </div>
+ </div>
+ <aside class="note">Each panel climbs one level: add → multiply → power; add → Σ → integral; small functions → programs. Same idea will build adders from gates and algorithms from quantum gates.</aside>
+</div></section>
+
+<section class="slide" id="meaning" data-sec="Computing" data-t="Meaning and goal">
+<div class="wrap">
+ <h2>Bits mean nothing until we decide what they mean</h2>
+ <div class="two">
+  <div class="panel">
+   <h3>Click the bits</h3>
+   <div class="row" id="sbits"></div>
+   <div class="stat" style="margin-top:14px">
+    <div><b id="su">65</b><span>as a whole number</span></div>
+    <div><b id="ss">65</b><span>as a signed number</span></div>
+    <div><b id="sc">A</b><span>as a text character</span></div>
+    <div><b><span id="sg" style="display:inline-block;width:1.4em;height:1em;border:1px solid var(--rule);vertical-align:-2px;border-radius:4px"></span></b><span>as a grey pixel</span></div>
+   </div>
+  </div>
+  <div style="display:grid;gap:12px">
+   <p style="font-size:19px">The circuit only moves 0s and 1s. <b>We</b> give them meaning: a number, a letter, a colour.</p>
+   <ul class="pts">
+    <li>Composition without meaning is just shuffling symbols.</li>
+    <li>Every useful computation has a <span class="b">semantic</span> (what the symbols stand for) and a <span class="b">goal</span> (what answer we want).</li>
+    <li>Keep this in mind for quantum: we will design circuits so the answer we want is the one we are likely to read.</li>
+   </ul>
+  </div>
+ </div>
+ <aside class="note">Programmers know this as types. The bits 01000001 are "A" only because we said char.</aside>
+</div></section>
+
+<!-- ============ CLASSICAL ============ -->
+<section class="slide" id="bit" data-sec="Classical computing" data-t="The bit">
+<div class="wrap">
+ <h2>The bit: one of two states</h2>
+ <div class="two r">
+  <div style="display:grid;gap:12px">
+   <p style="font-size:19px">A bit is anything with two clearly different states we can set and read.</p>
+   <ul class="pts">
+    <li>A light switch: off / on</li>
+    <li>A wire: low voltage / high voltage</li>
+    <li>A tiny magnet: pointing down / up</li>
+    <li>A punch card: no hole / hole</li>
+   </ul>
+   <p>Unit of information: one yes/no answer. Shannon named it in 1948.</p>
+  </div>
+  <div class="panel">
+   <h3>n bits: many possible patterns, one at a time</h3>
+   <label class="ctl" for="pn">Number of bits: <b id="pnv">3</b><input id="pn" type="range" min="1" max="6" value="3"></label>
+   <div class="chips" id="pchips"></div>
+   <div class="row" style="margin-top:10px"><button id="pst">Store a random value</button><span class="small mute" id="ptx"></span></div>
+  </div>
+ </div>
+ <aside class="note">Stress: 3 bits can be in 8 patterns, but the register holds exactly ONE of them right now. Later: 3 qubits carry 8 amplitudes at once. This is the key contrast.</aside>
+</div></section>
+
+<section class="slide" id="gates" data-sec="Classical computing" data-t="Logic gates">
+<div class="wrap">
+ <h2>A handful of gates are the basic operations</h2>
+ <div class="row"><span>Inputs:</span><button class="bit" id="gA" aria-label="Input A">0</button><span class="mono">A</span><button class="bit" id="gB" aria-label="Input B">0</button><span class="mono">B</span><span class="small mute">Toggle the inputs. Every gate reacts and its truth table highlights the row.</span></div>
+ <div class="cols" id="gcards" style="grid-template-columns:repeat(auto-fit,minmax(11em,1fr))"></div>
+ <aside class="note">Each gate is a tiny function from bits to a bit. Ask: which one detects "different"? (XOR.) Which one is "both"? (AND.) Keep XOR and AND in mind for the next exercise.</aside>
+</div></section>
+
+<section class="slide" id="build" data-sec="Classical computing" data-t="Building up">
+<div class="wrap">
+ <h2>Complex machines are gates, composed in layers</h2>
+ <div class="two">
+  <div class="panel">
+   <h3>One gate is enough: NAND</h3>
+   <div class="tw"><table>
+    <tr><th class="l">Want</th><th class="l">Build it from NAND</th></tr>
+    <tr><td class="l fm"><span class="ov">A</span></td><td class="l fm"><span class="ov">A · A</span></td></tr>
+    <tr><td class="l fm">A · B</td><td class="l fm"><span class="ov2"><span class="ov">A · B</span></span>&nbsp; (NAND, then NOT)</td></tr>
+    <tr><td class="l fm">A + B</td><td class="l fm"><span class="ov2"><span class="ov">A</span> · <span class="ov">B</span></span>&nbsp; (De Morgan)</td></tr>
+   </table></div>
+   <p class="small mute" style="margin-top:10px">That is why NAND is called universal: every digital circuit can be made of it.</p>
+  </div>
+  <div>
+   <h3>The layers in your laptop</h3>
+   <div class="stack">
+    <div><b>Programs</b><span class="mute">sort, search, render</span></div>
+    <div><b>Instructions</b><span class="mute">ADD, LOAD, JUMP</span></div>
+    <div><b>CPU parts</b><span class="mute">ALU, registers</span></div>
+    <div><b>Adders, multiplexers</b><span class="mute">a few dozen gates</span></div>
+    <div><b>Gates</b><span class="mute">NAND, XOR, AND</span></div>
+    <div><b>Transistors</b><span class="mute">switches, billions of them</span></div>
+   </div>
+  </div>
+ </div>
+ <aside class="note">Same pattern as the composition slide. Next: we climb one layer ourselves, from gates to an adder.</aside>
+</div></section>
+
+<!-- ============ EXAMPLE: ADDERS ============ -->
+<section class="slide" id="ha-spec" data-sec="Example: adders" data-t="Half-adder: the spec">
+<div class="wrap">
+ <h2>Design task: add two bits</h2>
+ <div class="two r">
+  <div style="display:grid;gap:12px">
+   <p><b>Step 1. Write what you want.</b> In binary, 1 + 1 = 10: the answer needs two bits, a <b>sum</b> S and a <b>carry</b> C.</p>
+   <p><b>Step 2. Look for patterns.</b> Does the S column look like a gate you know? And C?</p>
+   <p><b>Step 3. Pick gates.</b> Then <b>Step 4:</b> wire them and test every row.</p>
+   <div class="row"><button id="hareveal">Compare with XOR and AND</button></div>
+  </div>
+  <div class="panel tw">
+   <table id="hatab" style="font-size:20px">
+    <thead><tr><th>A</th><th>B</th><th>A + B</th><th>C</th><th>S</th><th class="rev">A AND B</th><th class="rev">A XOR B</th></tr></thead>
+    <tbody></tbody>
+   </table>
+   <p class="small mute rev-note" id="hanote" style="margin-top:10px"></p>
+  </div>
+ </div>
+ <aside class="note">Ask students to find the pattern before clicking. Reveal: S matches XOR exactly, C matches AND exactly. Design = spec, pattern, gates, wiring.</aside>
+</div></section>
+
+<section class="slide" id="ha" data-sec="Example: adders" data-t="Half-adder: the circuit">
+<div class="wrap">
+ <h2>The half-adder: one XOR and one AND</h2>
+ <div class="two">
+  <div class="panel"><svg id="hasvg" viewBox="0 0 620 290" role="img" aria-label="Half-adder circuit: inputs A and B feed an XOR gate giving S and an AND gate giving C"></svg><p class="small mute">Click A or B to toggle. Red wires carry 1.</p></div>
+  <div style="display:grid;gap:14px">
+   <div><p class="mute small">Reading</p><p class="big mono" id="haread"></p></div>
+   <div class="tw"><table id="hatt"><thead><tr><th>A</th><th>B</th><th>C</th><th>S</th></tr></thead><tbody></tbody></table></div>
+   <p class="small">Each input wire splits and goes to both gates. That "fan-out" is free in classical circuits. (In quantum circuits it is not: you cannot copy a qubit.)</p>
+  </div>
+ </div>
+ <aside class="note">Click through all four rows and check against the table. Plant the seed: copying a wire is free here, not for qubits (no-cloning).</aside>
+</div></section>
+
+<section class="slide" id="fa-spec" data-sec="Example: adders" data-t="Full-adder: the spec">
+<div class="wrap">
+ <h2>Longer numbers need a carry coming in</h2>
+ <div class="two r">
+  <div style="display:grid;gap:12px">
+   <p>Adding 1011 + 0110 column by column, each column adds <b>three</b> bits: A, B and the carry from the column on its right (C<sub>in</sub>).</p>
+   <p><b>Idea:</b> reuse what we have.</p>
+   <ul class="pts">
+    <li>Half-adder 1: add A and B.</li>
+    <li>Half-adder 2: add that sum to C<sub>in</sub>.</li>
+    <li>Either step may produce a carry; they never both do, so an OR combines them into C<sub>out</sub>.</li>
+   </ul>
+  </div>
+  <div class="panel tw">
+   <table id="fatab"><thead><tr><th>A</th><th>B</th><th>C<sub>in</sub></th><th>count of 1s</th><th>C<sub>out</sub></th><th>S</th></tr></thead><tbody></tbody></table>
+  </div>
+ </div>
+ <aside class="note">The "count of 1s" column makes it obvious: C_out S is just that count written in binary. Ask: why can both half-adders never carry at once?</aside>
+</div></section>
+
+<section class="slide" id="fa" data-sec="Example: adders" data-t="Full-adder: the circuit">
+<div class="wrap">
+ <h2>The full-adder: two half-adders and an OR</h2>
+ <div class="panel"><svg id="fasvg" viewBox="0 0 880 330" role="img" aria-label="Full-adder circuit built from two half-adders and an OR gate"></svg></div>
+ <div class="row" style="justify-content:space-between"><p class="small mute">Click A, B or Cin.</p><p class="mono" id="faread" style="font-size:20px"></p></div>
+ <aside class="note">Show the middle signals: the first sum goes into the second half-adder. Composition again: we built a bigger block out of the block we just made.</aside>
+</div></section>
+
+<section class="slide" id="ripple" data-sec="Example: adders" data-t="A 4-bit adder">
+<div class="wrap">
+ <h2>Chain four full-adders and you can add numbers</h2>
+ <div class="panel">
+  <div class="rgrid" id="rip"></div>
+ </div>
+ <div class="row" style="justify-content:space-between">
+  <div class="row"><button data-rp="15,1">15 + 1</button><button data-rp="5,3">5 + 3</button><button data-rp="9,9">9 + 9</button><button data-rp="r">Random</button></div>
+  <p class="mono" id="ripread" style="font-size:20px"></p>
+ </div>
+ <p class="small mute">Each carry ripples from right to left. Try 15 + 1 and watch it travel all the way. This "ripple-carry adder" is how early CPUs added.</p>
+ <aside class="note">Bits on top are clickable. The carry chain is also why this design is slow for 64 bits: speed will matter next.</aside>
+</div></section>
+
+<!-- ============ SPEED ============ -->
+<section class="slide" id="speed-pc" data-sec="Speed" data-t="Comparing computers">
+<div class="wrap">
+ <h2>Which computer is faster? It depends on the algorithm</h2>
+ <div class="cols">
+  <div><h3>Clock speed</h3><p>Steps per second, in GHz. Easy to quote, says little alone.</p></div>
+  <div><h3>Operations per second</h3><p>How many additions or multiplications per second (FLOPS).</p></div>
+  <div><h3>Benchmarks</h3><p>Run the same task on both and time it. Honest, but tied to that task.</p></div>
+ </div>
+ <div class="panel">
+  <h3>Race: fast laptop with a clumsy algorithm vs slow phone with a smart one</h3>
+  <label class="ctl" for="rcn">Items to sort: <b id="rcnv"></b><input id="rcn" type="range" min="1" max="9" step="0.1" value="2"></label>
+  <div class="race">
+   <div class="panel plain" id="rc1"><p class="small mute">Laptop, 1,000,000,000 steps/s, compares every pair (n² steps)</p><p class="big" id="rc1t"></p></div>
+   <div class="panel plain" id="rc2"><p class="small mute">Old phone, 10,000,000 steps/s, smart sort (n·log₂n steps)</p><p class="big" id="rc2t"></p></div>
+  </div>
+ </div>
+ <aside class="note">Start small: laptop wins. Drag right past about a thousand items: the phone wins and the gap explodes. Moral: compare algorithms, not machines.</aside>
+</div></section>
+
+<section class="slide" id="speed-algo" data-sec="Speed" data-t="Comparing algorithms">
+<div class="wrap">
+ <h2>Compare algorithms by how the work grows</h2>
+ <p class="lead">Count steps as the input size n grows. Bars use a log scale; time assumes one billion steps per second.</p>
+ <label class="ctl" for="gn" style="max-width:520px">Input size n = <b id="gnv"></b><input id="gn" type="range" min="1" max="7" step="1" value="3"></label>
+ <div class="panel" style="display:grid;gap:8px" id="grows"></div>
+ <p class="small mute">Red rows are the two we will meet: looking at every item (n) and quantum search (√n).</p>
+ <aside class="note">Programmers know Big-O; frame it as "what happens when the input doubles". Show that √n vs n is a big deal at a million items: 1,000 vs 1,000,000.</aside>
+</div></section>
+
+<section class="slide" id="queries" data-sec="Speed" data-t="Counting queries">
+<div class="wrap">
+ <h2>Counting questions instead of steps</h2>
+ <div class="two">
+  <svg viewBox="0 0 600 260" role="img" aria-label="You send x into a locked black box f and get f of x back; only the number of questions is counted">
+   <rect x="20" y="85" width="120" height="90" rx="14" class="sk"/><text x="80" y="137" text-anchor="middle" style="font-size:20px">you</text>
+   <path d="M150 112H330" class="dash" marker-end="url(#ah)"/><text x="240" y="100" text-anchor="middle" style="font-size:18px">question: x</text>
+   <path d="M330 152H150" class="dash" marker-end="url(#ah)"/><text x="240" y="182" text-anchor="middle" style="font-size:18px">answer: f(x)</text>
+   <rect x="345" y="55" width="200" height="150" rx="14" style="fill:var(--ink)"/>
+   <text x="445" y="142" text-anchor="middle" style="font:700 44px var(--mono);fill:var(--bg);stroke:none">f</text>
+   <rect x="520" y="40" width="44" height="34" rx="6" style="fill:var(--red)"/><path d="M530 40v-10a12 12 0 0 1 24 0v10" style="fill:none;stroke:var(--red);stroke-width:4"/>
+   <text x="445" y="240" text-anchor="middle" class="cap">black box: we can't see inside</text>
+  </svg>
+  <div style="display:grid;gap:12px">
+   <p style="font-size:19px">Sometimes we only care how many times we must <b>ask</b> a function, not what happens inside it.</p>
+   <ul class="pts">
+    <li>A password checker that only answers yes or no</li>
+    <li>A paid API: you pay per call</li>
+    <li>A lab experiment: each run costs a day</li>
+   </ul>
+   <p>This <b>number of queries</b> lets us compare a classical and a quantum computer fairly: same box, count the questions.</p>
+  </div>
+ </div>
+ <aside class="note">Deutsch's and Grover's algorithms are both "query" problems. This is the yardstick for the rest of the talk.</aside>
+</div></section>
+
+<!-- ============ FIRST QUANTUM CIRCUIT ============ -->
+<section class="slide" id="ibm" data-sec="First quantum circuit" data-t="IBM Composer demo">
+<div class="wrap">
+ <h2>Live: your first quantum circuit in IBM Quantum Composer</h2>
+ <div class="two r">
+  <div style="display:grid;gap:10px">
+   <p>Open <a href="https://quantum.cloud.ibm.com/composer" target="_blank" rel="noopener">quantum.cloud.ibm.com/composer</a></p>
+   <ol style="margin:0;padding-left:1.3em;display:grid;gap:6px">
+    <li><b>Qubit lines</b> q[0], q[1]…: each starts at |0⟩, time runs left to right</li>
+    <li><b>Classical bits</b> c: where measurement results land</li>
+    <li><b>Operations catalog</b>: drag gates (X, H, CNOT…) onto a line</li>
+    <li><b>Measurement</b>: turns a qubit into a 0 or a 1</li>
+    <li><b>Live views</b>: probabilities and the Q-sphere update as you edit</li>
+    <li><b>Code view</b>: the same circuit as Qiskit / OpenQASM</li>
+    <li><b>Run</b>: on a simulator or real hardware, many "shots"</li>
+   </ol>
+  </div>
+  <div class="cols" id="exps" style="grid-template-columns:repeat(auto-fit,minmax(10em,1fr))"></div>
+ </div>
+ <aside class="note">Build the three tiny circuits on the right live. The third is the hook: two "random" H gates in a row give a certain 0. It is explained on the qubit slide: H is a mirror, and mirroring twice brings you back.</aside>
+</div></section>
+
+<section class="slide" id="sandbox" data-sec="First quantum circuit" data-t="One-qubit sandbox">
+<div class="wrap">
+ <h2>Backup: a one-qubit circuit you can run right here</h2>
+ <div class="two">
+  <div class="panel" style="display:grid;gap:12px">
+   <div class="qwire" id="sbw"></div>
+   <div class="row"><button data-sg="X">+ X</button><button data-sg="H">+ H</button><button data-sg="Z">+ Z</button><button id="sbu">Undo</button><button id="sbc">Clear</button></div>
+   <div class="row"><span class="small mute">Presets:</span><button data-sp="X">X</button><button data-sp="H">H</button><button data-sp="HH">H H</button><button data-sp="HZH">H Z H</button></div>
+  </div>
+  <div class="panel" style="display:grid;gap:10px">
+   <div class="row" style="justify-content:space-between"><h3 style="margin:0">Run 1024 shots</h3><button id="sbr" class="on">Run</button></div>
+   <div class="hist" id="sbh"></div>
+   <p class="small" id="sbp"></p>
+  </div>
+ </div>
+ <aside class="note">Use if the IBM site is slow. Same experiments: X, H, H H. Then H Z H: Z alone changes nothing you can measure, yet sandwiched between H gates it flips the result.</aside>
+</div></section>
+
+<!-- ============ DEUTSCH ============ -->
+<section class="slide" id="deutsch" data-sec="Deutsch's problem" data-t="The problem">
+<div class="wrap">
+ <h2>Deutsch's problem: is the box constant or balanced?</h2>
+ <div class="two r">
+  <div style="display:grid;gap:12px">
+   <p style="font-size:19px">A black box computes a function f that takes one bit and returns one bit. There are only four such functions.</p>
+   <ul class="pts">
+    <li><b>Constant</b>: same output for both inputs</li>
+    <li><b>Balanced</b>: different outputs for 0 and 1</li>
+   </ul>
+   <p>Question: which kind is in the box? We don't need to know f itself, just its kind.</p>
+   <div class="coin">
+    <svg viewBox="0 0 150 90" role="img" aria-label="Fair coin with heads and tails"><circle cx="40" cy="45" r="32" class="sk"/><text x="40" y="53" text-anchor="middle" style="font-size:22px">H</text><circle cx="110" cy="45" r="32" class="sk"/><text x="110" y="53" text-anchor="middle" style="font-size:22px">T</text></svg>
+    <svg viewBox="0 0 150 90" role="img" aria-label="Fake coin with heads on both sides"><circle cx="40" cy="45" r="32" class="sk"/><text x="40" y="53" text-anchor="middle" style="font-size:22px">H</text><circle cx="110" cy="45" r="32" class="sk"/><text x="110" y="53" text-anchor="middle" style="font-size:22px">H</text></svg>
+   </div>
+   <p class="small mute">Same as asking: is a coin fair (two different sides) or fake (two equal sides)? You normally have to look at both sides.</p>
+  </div>
+  <div class="panel tw">
+   <table style="font-size:18px">
+    <thead><tr><th class="l">Function</th><th>f(0)</th><th>f(1)</th><th class="l">Kind</th></tr></thead>
+    <tbody>
+     <tr><td class="l">always 0</td><td>0</td><td>0</td><td class="l b">constant</td></tr>
+     <tr><td class="l">always 1</td><td class="one">1</td><td class="one">1</td><td class="l b">constant</td></tr>
+     <tr><td class="l">copy x</td><td>0</td><td class="one">1</td><td class="l r">balanced</td></tr>
+     <tr><td class="l">flip x</td><td class="one">1</td><td>0</td><td class="l r">balanced</td></tr>
+    </tbody>
+   </table>
+  </div>
+ </div>
+ <aside class="note">The smallest possible query problem (Deutsch, 1985). Toy, but it was the first proof that a quantum computer can beat every classical one at something.</aside>
+</div></section>
+
+<section class="slide" id="deutsch-c" data-sec="Deutsch's problem" data-t="Classical solution">
+<div class="wrap">
+ <h2>Classically, you must ask twice</h2>
+ <div class="two">
+  <div class="panel" style="display:grid;gap:12px">
+   <h3>Play: a mystery box</h3>
+   <div class="row"><button id="dq0">Ask f(0)</button><button id="dq1">Ask f(1)</button><span class="mono" id="dans"></span></div>
+   <div class="row"><button id="dgc">It's constant</button><button id="dgb">It's balanced</button><button id="dnew">New box</button></div>
+   <p class="verdict" id="dver" aria-live="polite"></p>
+   <p class="small mute" id="dstat"></p>
+  </div>
+  <div style="display:grid;gap:12px">
+   <p><b>Why one question is not enough:</b> say you ask f(0) and get 0.</p>
+   <div class="tw"><table><tr><th class="l">Still possible</th><th>f(1)</th><th class="l">Kind</th></tr><tr><td class="l">always 0</td><td>0</td><td class="l b">constant</td></tr><tr><td class="l">copy x</td><td class="one">1</td><td class="l r">balanced</td></tr></table></div>
+   <p>Both kinds are still possible, so any guess is a coin toss. A classical computer always needs <b>2 queries</b>. There is no clever trick.</p>
+  </div>
+ </div>
+ <aside class="note">Let someone guess after one question: right half the time, but never sure. Two queries, always.</aside>
+</div></section>
+
+<section class="slide" id="deutsch-q" data-sec="Deutsch's problem" data-t="Quantum solution">
+<div class="wrap">
+ <h2>Quantum: one question is enough</h2>
+ <div class="row"><span class="small mute">Box contains:</span><span id="dorc" class="row"></span></div>
+ <div class="panel"><svg id="dsvg" viewBox="0 0 720 215" style="max-height:34vh;margin:auto" role="img" aria-label="Deutsch circuit: q1 gets X, both qubits get H, then the box, then H on q0 and a measurement"></svg></div>
+ <div class="two">
+  <div style="display:grid;gap:10px;align-content:start">
+   <div class="row"><span class="small mute">Step:</span><div class="stages" id="dst"></div></div>
+   <p id="dcap" style="min-height:3em;font-size:18px"></p>
+  </div>
+  <div style="display:grid;gap:10px">
+   <div class="panel" style="display:grid;gap:8px"><p class="small mute">Amplitudes of |q1 q0⟩ (blue +, red −)</p><div id="damps" style="display:grid;gap:8px"></div></div>
+   <p class="verdict" id="dres"></p>
+   <details><summary>Qiskit code for this box</summary><div class="row" style="justify-content:flex-end;margin:6px 0"><button id="dcopy">Copy</button></div><pre id="dcode"></pre></details>
+  </div>
+ </div>
+ <aside class="note">In Composer: build X on q1, H on both, the oracle for the chosen box, H on q0, measure q0. Run each of the four boxes. Constant gives 0, balanced gives 1, one query each time.</aside>
+</div></section>
+
+<section class="slide" id="deutsch-why" data-sec="Deutsch's problem" data-t="What happened?">
+<div class="wrap">
+ <h2>What just happened?</h2>
+ <div class="two">
+  <div style="display:grid;gap:12px">
+   <ul class="pts" style="font-size:18px">
+    <li>The box was asked <b>once</b>, but with q0 in a mix of 0 and 1.</li>
+    <li>The box's answer did not land in q1 as a value. It landed on q0 as a <b>sign</b>: + or − on each part. (This is called phase kickback.)</li>
+    <li>The last H turns <b>equal signs into 0</b> and <b>opposite signs into 1</b>.</li>
+    <li>We never learn f(0) or f(1). We learn only the one thing we asked: same or different.</li>
+   </ul>
+  </div>
+  <div class="panel tw">
+   <table style="font-size:18px">
+    <thead><tr><th class="l">Box</th><th>sign on |0⟩</th><th>sign on |1⟩</th><th>q0 reads</th></tr></thead>
+    <tbody>
+     <tr><td class="l">always 0</td><td class="b">+</td><td class="b">+</td><td>0</td></tr>
+     <tr><td class="l">always 1</td><td class="r">−</td><td class="r">−</td><td>0</td></tr>
+     <tr><td class="l">copy x</td><td class="b">+</td><td class="r">−</td><td class="one">1</td></tr>
+     <tr><td class="l">flip x</td><td class="r">−</td><td class="b">+</td><td class="one">1</td></tr>
+    </tbody>
+   </table>
+   <p class="small mute" style="margin-top:8px">An overall sign (− −) can't be seen; only the relative sign matters.</p>
+  </div>
+ </div>
+ <aside class="note">The speed-up is not "trying both inputs in parallel and reading both answers". You can't read both. It is asking a global question and using interference to read the answer to that question only.</aside>
+</div></section>
+
+<!-- ============ GROVER ============ -->
+<section class="slide" id="grover" data-sec="Grover's search" data-t="The search problem">
+<div class="wrap">
+ <h2>Find the one marked box among many</h2>
+ <div class="two r">
+  <div style="display:grid;gap:12px">
+   <p style="font-size:19px">N boxes, one hides the prize. The only tool: open a box and look (a query). No order, no hints.</p>
+   <p><b>Question for you:</b> how would a classical program do it? How many boxes do you open on average? In the worst case?</p>
+   <div class="stat"><div><b id="ggt">0</b><span>boxes opened this round</span></div><div><b id="gga">–</b><span>your average so far</span></div><div><b>8.5</b><span>expected average for 16</span></div></div>
+   <div class="row"><button id="ggn">New round</button></div>
+  </div>
+  <div class="boxes" id="ggb"></div>
+ </div>
+ <aside class="note">Let a few students play. Answer: look one by one; on average (N+1)/2, worst case N. For a million boxes, half a million looks.</aside>
+</div></section>
+
+<section class="slide" id="grover-idea" data-sec="Grover's search" data-t="Quantum search idea">
+<div class="wrap">
+ <h2>Quantum search in three moves</h2>
+ <div class="cols">
+  <div class="panel"><h3>1. Spread out</h3><div class="mini" id="gi1"></div><p>Put the qubits in an even mix: every box equally likely.</p></div>
+  <div class="panel"><h3>2. Mark</h3><div class="mini neg" id="gi2" style="height:90px"></div><p>Ask the box once: it flips the sign of the prize. Invisible if you peeked now.</p></div>
+  <div class="panel"><h3>3. Amplify</h3><div class="mini" id="gi3"></div><p>Flip every value around the average. The marked one grows, the rest shrink. Repeat moves 2 and 3.</p></div>
+ </div>
+ <div class="panel tw">
+  <table id="gcmp" style="width:100%"><thead><tr><th class="l">Boxes N</th><th>Classical: average looks</th><th>Quantum: rounds (≈ 0.785 √N)</th></tr></thead><tbody></tbody></table>
+ </div>
+ <p class="small mute">Square root speed-up: big, but not magic. Too many rounds overshoot and the chance drops again.</p>
+ <aside class="note">Avoid formulas. "Reflect around the average" is the whole trick: the one below average jumps far above it.</aside>
+</div></section>
+
+<section class="slide" id="grover-demo" data-sec="Grover's search" data-t="Search demo">
+<div class="wrap">
+ <h2>Watch the amplitudes move</h2>
+ <div class="row">
+  <span class="small mute">Boxes:</span><span class="row" id="gN"></span>
+  <span class="small mute">Click a bar to choose the prize.</span>
+ </div>
+ <div id="gbars"></div>
+ <div class="row">
+  <button id="gm">Mark</button><button id="gd">Amplify</button><button id="gs" class="on">One full round</button><button id="gauto">Run best number of rounds</button><button id="gmeas">Measure</button><button id="gr">Reset</button>
+ </div>
+ <div class="two">
+  <div class="stat">
+   <div><b id="gk">0</b><span>rounds (queries)</span></div>
+   <div><b id="gp">6%</b><span>chance to read the prize</span></div>
+   <div><b id="gopt">3</b><span>best number of rounds</span></div>
+   <div><b id="gcl">0%</b><span>classical after same queries</span></div>
+  </div>
+  <div><p class="small mute">Chance of success after each round: quantum (bars) vs classical (line)</p><svg id="gspark" viewBox="0 0 320 120" style="width:100%;max-width:360px" role="img" aria-label="Chance of success per round"></svg></div>
+ </div>
+ <p class="verdict" id="gmsg" aria-live="polite"></p>
+ <aside class="note">Do Mark and Amplify separately first, showing the dashed average line. Then run the best number of rounds, then measure. Push one round past the best to show overshoot.</aside>
+</div></section>
+
+<!-- ============ MAGIC ============ -->
+<section class="slide" id="qubit" data-sec="What is the magic?" data-t="The qubit">
+<div class="wrap">
+ <h2>A qubit is an arrow, not a switch</h2>
+ <div class="two">
+  <svg id="qsvg" viewBox="0 0 440 440" role="img" aria-label="Qubit state drawn as an arrow on a circle; drag to rotate"></svg>
+  <div style="display:grid;gap:12px">
+   <p>The arrow's shadow on each axis is an <b>amplitude</b>. Square it to get the chance of reading that value.</p>
+   <p class="mono" id="qst" style="font-size:20px"></p>
+   <div class="pb"><span class="mono">0</span><div class="t"><i id="qp0" style="background:var(--blue)"></i></div><span id="qp0v"></span></div>
+   <div class="pb"><span class="mono">1</span><div class="t"><i id="qp1" style="background:var(--red)"></i></div><span id="qp1v"></span></div>
+   <label class="ctl" for="qang">Angle: <b id="qangv"></b><input id="qang" type="range" min="-180" max="180" value="0"></label>
+   <div class="row"><span class="small mute">Gates are mirrors:</span><button data-qg="X">X</button><button data-qg="Z">Z</button><button data-qg="H">H</button></div>
+   <div class="row"><span class="small mute">Start at:</span><button data-qp="0">|0⟩</button><button data-qp="90">|1⟩</button><button data-qp="45">|+⟩</button><button data-qp="-45">|−⟩</button></div>
+   <div class="row"><button id="qm">Measure</button><button id="qu" disabled>Undo measure</button><span id="qmr" class="small"></span></div>
+   <p class="small mute">Simplified: real qubits have one more dial (a complex phase). This flat circle is enough for Deutsch and Grover.</p>
+  </div>
+ </div>
+ <aside class="note">Drag the arrow. X mirrors in the diagonal (swaps 0 and 1), Z mirrors in the horizontal axis (flips the sign of the 1-part), H mirrors in the line at 22.5°. Measuring snaps the arrow to an axis: the mix is gone.</aside>
+</div></section>
+
+<section class="slide" id="grover5" data-sec="What is the magic?" data-t="Grover on 5 qubits">
+<div class="wrap">
+ <h2>Grover on 5 qubits: all 32 inputs in one register</h2>
+ <div class="two">
+  <div class="panel"><svg id="g5svg" viewBox="0 0 680 236" style="max-height:30vh;margin:auto" role="img" aria-label="Grover circuit on five qubits: H on every qubit, then four rounds of oracle and diffuser, then measurement"></svg></div>
+  <div style="display:grid;gap:10px;align-content:start">
+   <div class="panel" style="display:grid;gap:4px"><p class="small mute">State of the register</p><div id="g5eq" style="min-height:64px;display:grid;place-items:center"></div></div>
+   <div class="panel plain"><p><b>Quantum parallelism:</b> 5 H gates turn one value into a mix of all 2⁵ = 32 inputs. Five classical bits hold one of the 32. One oracle call then acts on all 32 at once.</p><p class="small mute" style="margin-top:6px">The catch: measuring returns only one input. The rounds use interference to make it the right one.</p></div>
+  </div>
+ </div>
+ <div class="row"><span class="small mute">Step:</span><div class="stages" id="g5st"></div><button id="g5m">Measure</button><button id="g5m20">Measure 20 times</button></div>
+ <p id="g5cap" style="font-size:17px;min-height:2.4em;margin:-6px 0"></p>
+ <div class="kg" id="g5g"></div>
+ <p class="small mute">Each cell is one input |q4 q3 q2 q1 q0⟩, with its amplitude bar (blue +, red −) and its chance. Click a cell to choose the marked input.</p>
+ <aside class="note">Step 1 is the parallelism moment: one register, 32 inputs, each 3.1%. Step 2: one oracle call touches all 32 but you can't see it, only a sign changed. Then 4 rounds take the marked one to about 99.9%. Measure 20 times to show it. Stress: parallelism alone gives nothing; reading the register gives a random input. Interference is what makes it useful.</aside>
+</div></section>
+
+<section class="slide" id="ingredients" data-sec="What is the magic?" data-t="Ingredients">
+<div class="wrap">
+ <h2>The magic is four ingredients, used together</h2>
+ <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(13em,1fr))">
+  <div class="panel"><h3>Superposition</h3><p>A qubit carries amplitudes for 0 and 1 at once. n qubits carry 2ⁿ of them.</p></div>
+  <div class="panel"><h3>Interference</h3><p>Amplitudes have signs, so paths can cancel or add up. This is where speed-ups come from.</p></div>
+  <div class="panel"><h3>Entanglement</h3><p>Qubits can share one joint state: each alone is random, together they agree.</p><div class="row" style="margin-top:8px"><button id="bell">Measure 10 pairs</button></div><p class="pairs" id="bellr"></p></div>
+  <div class="panel"><h3>Measurement</h3><p>You only ever read one ordinary bit string. The art is making the right one likely.</p></div>
+ </div>
+ <div class="panel tw">
+  <table style="width:100%"><thead><tr><th class="l">Quantum gate</th><th class="l">What it does to the arrow</th><th class="l">Classical cousin</th></tr></thead><tbody>
+   <tr><td class="l mono">X</td><td class="l">swaps the 0-part and 1-part</td><td class="l">NOT</td></tr>
+   <tr><td class="l mono">Z</td><td class="l">flips the sign of the 1-part</td><td class="l">none: signs don't exist classically</td></tr>
+   <tr><td class="l mono">H</td><td class="l">mixes: |0⟩ → even mix with +, |1⟩ → even mix with −</td><td class="l">none (a coin flip that can be undone)</td></tr>
+   <tr><td class="l mono">CNOT</td><td class="l">flips the target if the control is 1</td><td class="l">XOR that keeps its input</td></tr>
+   <tr><td class="l mono">Measure</td><td class="l">snaps to 0 or 1, the mix is lost</td><td class="l">reading a bit</td></tr>
+  </tbody></table>
+ </div>
+ <p class="small mute">All quantum gates are reversible. That is why CNOT keeps its input and why there is no quantum AND that throws information away.</p>
+ <aside class="note">Bell pair = H on q0 then CNOT. Tie back: the half-adder used XOR and AND; quantum circuits use reversible versions of such gates.</aside>
+</div></section>
+
+<section class="slide" id="recap" data-sec="Wrap-up" data-t="Recap and next">
+<div class="wrap">
+ <h2>What we saw, and where we go next</h2>
+ <div class="two">
+  <div class="stack">
+   <div><b>Computing</b><span class="mute">small steps, composed, with a goal</span></div>
+   <div><b>Classical</b><span class="mute">bits, gates, half- and full-adders</span></div>
+   <div><b>Speed</b><span class="mute">count how work grows, or count queries</span></div>
+   <div><b>Deutsch</b><span class="mute">2 queries classically, 1 quantum</span></div>
+   <div><b>Grover</b><span class="mute">N/2 looks vs about 0.785 √N rounds</span></div>
+   <div><b>Magic</b><span class="mute">superposition holds all inputs, interference picks one</span></div>
+  </div>
+  <div style="display:grid;gap:12px">
+   <h3>Next sessions</h3>
+   <ul class="pts">
+    <li>Deutsch–Jozsa: the same trick for n-bit inputs</li>
+    <li>Phase kickback, step by step</li>
+    <li>Quantum parallelism: what it is and what it isn't</li>
+    <li>Writing these circuits in Qiskit</li>
+   </ul>
+   <p class="big" style="margin-top:12px">Questions?</p>
+  </div>
+ </div>
+ <aside class="note">Close on interference as the one idea to remember.</aside>
+</div></section>
+
+</main>
+
+<nav id="bar" aria-label="Slide navigation">
+ <button id="prev" aria-label="Previous slide">←</button>
+ <select id="jump" aria-label="Jump to slide"></select>
+ <button id="next" aria-label="Next slide">→</button>
+ <button id="nbtn" class="hide-s">Notes</button>
+ <button id="fbtn" class="hide-s">Full screen</button>
+ <span id="count"></span>
+</nav>
+
+<script>
+{
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fx=(v,d=2)=>{if(Math.abs(v)<1e-9)v=0;return (v>=0?'+':'−')+Math.abs(v).toFixed(d)};
+const pct=p=>Math.round(p*100)+'%';
+
+/* ---------- deck navigation ---------- */
+const deck=$('#deck'), slides=$$('.slide'), N=slides.length;
+let cur=0;
+const go=i=>{i=Math.max(0,Math.min(N-1,i));deck.scrollTo({left:i*deck.clientWidth,behavior:RM?'auto':'smooth'})};
+const secs=[];slides.forEach((s,i)=>{if(!secs.find(x=>x.n===s.dataset.sec))secs.push({n:s.dataset.sec,i})});
+const jump=$('#jump');
+jump.innerHTML=secs.map(sc=>`<optgroup label="${sc.n}">${slides.map((s,i)=>s.dataset.sec===sc.n?`<option value="${i}">${i+1}. ${s.dataset.t}</option>`:'').join('')}</optgroup>`).join('');
+jump.onchange=()=>go(+jump.value);
+$('#agenda').innerHTML=secs.map(sc=>`<button data-go="${sc.i}">${sc.n}</button>`).join('');
+$('#agenda').onclick=e=>{const b=e.target.closest('[data-go]');if(b)go(+b.dataset.go)};
+const upd=()=>{$('#count').textContent=`${cur+1} / ${N}`;$('#prog').style.width=((cur+1)/N*100)+'%';jump.value=cur;$('#prev').disabled=cur===0;$('#next').disabled=cur===N-1;try{history.replaceState(null,'','#'+slides[cur].id)}catch(e){}};
+deck.addEventListener('scroll',()=>{const i=Math.round(deck.scrollLeft/deck.clientWidth);if(i!==cur){cur=i;upd()}},{passive:true});
+$('#prev').onclick=()=>go(cur-1);$('#next').onclick=()=>go(cur+1);
+const toggleNotes=()=>{document.body.classList.toggle('notes');$('#nbtn').classList.toggle('on')};
+$('#nbtn').onclick=toggleNotes;
+const fs=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}};
+$('#fbtn').onclick=fs;
+document.addEventListener('keydown',e=>{
+ const t=e.target;
+ if(t.closest&&t.closest('input,select,textarea'))return;
+ if((e.key===' '||e.key==='Enter')&&t.closest&&t.closest('button,.sw,a,summary'))return;
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(cur+1)}
+ else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(cur-1)}
+ else if(e.key==='Home'){e.preventDefault();go(0)}else if(e.key==='End'){e.preventDefault();go(N-1)}
+ else if(e.key==='n'||e.key==='N')toggleNotes();else if(e.key==='f'||e.key==='F')fs();
+});
+const ro0=new ResizeObserver(()=>{deck.scrollLeft=cur*deck.clientWidth});ro0.observe(deck);
+const h0=slides.findIndex(s=>s.id===location.hash.slice(1));
+if(h0>0){cur=h0;requestAnimationFrame(()=>{deck.scrollLeft=h0*deck.clientWidth})}
+upd();
+
+/* ---------- why: memory ---------- */
+const sci=l=>{const e=Math.floor(l);return `${(10**(l-e)).toFixed(1)} × 10<sup>${e}</sup>`};
+const memDraw=()=>{const n=+$('#memn').value;$('#memnv').textContent=n;
+ $('#memc').innerHTML=n<=50?(2**n).toLocaleString('en'):sci(n*Math.log10(2));
+ const b2=n+4,u=['B','KB','MB','GB','TB','PB','EB','ZB','YB'];let k=Math.min(8,Math.floor(b2/10));const v=2**(b2-10*k);
+ $('#memb').textContent=(v<10?v.toFixed(0):Math.round(v).toLocaleString('en'))+' '+u[k];
+ $('#memm').style.width=(n/64*100)+'%';
+ $('#memv').textContent=b2<=36?'Fits in a good laptop.':b2<=44?'Needs a large computing cluster.':b2<=49?'Only the largest supercomputers, about.':'More than any computer ever built.';
+ $('#memv').style.color=b2>49?'var(--red)':'';};
+$('#memn').oninput=memDraw;memDraw();
+
+/* ---------- history timeline ---------- */
+const EV=[
+ [1936,0,0,'Turing: a precise model of computation','Alan Turing describes a simple machine that can carry out any step-by-step procedure. The Turing machine still defines what "computable" means.'],
+ [1947,1,0,'The transistor','Bardeen, Brattain and Shockley at Bell Labs build the transistor: a switch with no moving parts. Every chip since is made of them.'],
+ [1948,2,0,'Shannon and the bit','Claude Shannon\'s theory of communication makes the bit the unit of information (the word itself came from John Tukey).'],
+ [1965,0,0,'Moore\'s observation','Gordon Moore notes that the number of transistors per chip doubles regularly. Chips shrink for decades, toward the size of atoms.'],
+ [1981,1,1,'Feynman: nature isn\'t classical','Richard Feynman argues that simulating quantum physics needs a computer that is itself quantum.'],
+ [1985,2,1,'Deutsch: a universal quantum computer','David Deutsch describes a quantum Turing machine and the first quantum algorithm, for the problem we solve today.'],
+ [1994,0,1,'Shor\'s factoring algorithm','Peter Shor shows a quantum computer could factor large numbers fast, which would break much of today\'s public-key encryption.'],
+ [1996,1,1,'Grover\'s search algorithm','Lov Grover finds a quantum way to search N unsorted items in about √N steps.'],
+ [1998,2,1,'First runs on real qubits','Deutsch\'s and Grover\'s algorithms run on two-qubit machines built from molecules (NMR).'],
+ [2016,0,1,'Quantum on the cloud','IBM puts a 5-qubit processor online for anyone to program. Today\'s demo uses its descendant.'],
+ [2019,1,1,'"Quantum supremacy" claim','Google\'s 53-qubit Sycamore finishes a sampling task it claims would take classical supercomputers far longer. The claim is debated.'],
+ [2023,2,1,'Over a thousand qubits','IBM\'s Condor chip passes 1,000 qubits. More qubits alone is not enough: errors are the real enemy.'],
+ [2024,3,1,'Errors start to shrink','Google\'s Willow chip shows errors going down as more qubits are used for error correction: a key milestone.']];
+const tl=$('#tl'),X=y=>`calc(28px + (100% - 56px) * ${(y-1930)/96})`;
+tl.innerHTML=`<div class="era" style="left:28px;width:calc((100% - 56px)*${51/96});background:var(--bt)"><span>classical computing</span></div><div class="era" style="left:${X(1981)};right:28px;background:var(--rt)"><span>quantum ideas and machines</span></div><div class="axis"></div>`+
+ [1940,1960,1980,2000,2020].map(y=>`<span class="yr" style="left:${X(y)}">${y}</span>`).join('')+
+ EV.map((e,i)=>`<span class="stem" style="left:${X(e[0])};height:${40+e[1]*44}px"></span><button class="ev${e[2]?' q':''}" data-i="${i}" style="left:${X(e[0])};bottom:${48+e[1]*44}px">${e[0]}</button>`).join('');
+const tlSel=i=>{$$('.ev',tl).forEach(b=>b.classList.toggle('on',+b.dataset.i===i));const e=EV[i];$('#tld').innerHTML=`<h3>${e[0]} · ${e[3]}</h3><p>${e[4]}</p>`};
+tl.onclick=e=>{const b=e.target.closest('.ev');if(b)tlSel(+b.dataset.i)};tlSel(4);
+
+/* ---------- what is computing ---------- */
+const QC=[['Adding 27 + 15','Yes. Symbols in, symbols out, by fixed rules (carry the one).'],['Sorting a playlist by length','Yes. Many comparisons and swaps, composed into an algorithm.'],['Following a cake recipe','Arguably yes: steps applied in order. The "computer" is you, the symbols are ingredients.'],['A thermostat switching the heating on','Yes, a tiny one: read a temperature, apply a rule, output on or off.']];
+$('#qcards').innerHTML=QC.map((q,i)=>`<button class="qcard" data-i="${i}"><b style="font-size:19px">${q[0]}</b><small>Click to reveal</small></button>`).join('');
+$('#qcards').onclick=e=>{const b=e.target.closest('.qcard');if(!b)return;b.classList.toggle('open');b.querySelector('small').textContent=b.classList.contains('open')?QC[b.dataset.i][1]:'Click to reveal'};
+
+/* ---------- composition ---------- */
+const mulDraw=()=>{const a=+$('#ma').value,b=+$('#mb').value;$('#mav').textContent=a;$('#mbv').textContent=b;
+ const d=$('#mdots');d.style.gridTemplateColumns=`repeat(${a},14px)`;d.innerHTML='<i></i>'.repeat(a*b);
+ $('#mtxt').textContent=`${a} × ${b} = ${Array(b).fill(a).join(' + ')} = ${a*b}`;
+ $('#ptxt').textContent=`And power is repeated multiplication: ${a}^${b} = ${a**b}, which takes ${(b-1)*(a-1)} additions if you only know how to add.`};
+$('#ma').oninput=$('#mb').oninput=mulDraw;mulDraw();
+const riem=()=>{const n=+$('#rn').value;$('#rnv').textContent=n;const x0=36,x1=328,y0=205,y1=18,sx=x=>x0+x*(x1-x0),sy=y=>y0-y*(y0-y1);
+ let h='',s=0;for(let i=1;i<=n;i++){const y=(i/n)**2;s+=y/n;h+=`<rect x="${sx((i-1)/n)}" y="${sy(y)}" width="${(x1-x0)/n}" height="${y*(y0-y1)}" style="fill:var(--bt);stroke:var(--blue);stroke-width:${n>30?.5:1}"/>`}
+ let p='';for(let i=0;i<=60;i++){const x=i/60;p+=(i?'L':'M')+sx(x).toFixed(1)+' '+sy(x*x).toFixed(1)}
+ $('#riem').innerHTML=h+`<path d="${p}" style="fill:none;stroke:var(--red);stroke-width:3"/><line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y0}" class="ax"/><line x1="${x0}" y1="${y0}" x2="${x0}" y2="${y1-6}" class="ax"/><text x="${x0}" y="224" text-anchor="middle" style="font-size:13px">0</text><text x="${x1}" y="224" text-anchor="middle" style="font-size:13px">1</text><text x="${x0+60}" y="${y1+12}" style="font-size:14px;fill:var(--red)">y = x²</text>`;
+ $('#rtxt').textContent=`S${String(n).split('').map(d=>'₀₁₂₃₄₅₆₇₈₉'[d]).join('')} = ${s.toFixed(4)}   (exact 1/3 = 0.3333)`};
+$('#rn').oninput=riem;riem();
+const comp=()=>{const x=+$('#cx').value;$('#cxv').textContent=x;
+ $('#pipe1').innerHTML=`<span>${x}</span>→<span class="f">f: +1</span>→<span>${x+1}</span>→<span class="f">g: ×2</span>→<span class="res">g(f(x)) = ${2*(x+1)}</span>`;
+ $('#pipe2').innerHTML=`<span>${x}</span>→<span class="f">g: ×2</span>→<span>${2*x}</span>→<span class="f">f: +1</span>→<span class="res">f(g(x)) = ${2*x+1}</span>`};
+$('#cx').oninput=comp;comp();
+
+/* ---------- meaning ---------- */
+const sb=[0,1,0,0,0,0,0,1];
+const semDraw=()=>{$('#sbits').innerHTML=sb.map((b,i)=>`<button class="bit${b?' on':''}" data-i="${i}" aria-label="bit ${7-i}">${b}</button>`).join('');
+ const v=sb.reduce((a,b)=>a*2+b,0);$('#su').textContent=v;$('#ss').textContent=v>127?v-256:v;
+ $('#sc').textContent=v>=33&&v<=126?String.fromCharCode(v):v===32?'space':'–';$('#sg').style.background=`rgb(${v},${v},${v})`};
+$('#sbits').onclick=e=>{const b=e.target.closest('[data-i]');if(b){sb[b.dataset.i]^=1;semDraw()}};semDraw();
+
+/* ---------- bit patterns ---------- */
+let pv=5;
+const patDraw=()=>{const n=+$('#pn').value;$('#pnv').textContent=n;pv%=2**n;
+ $('#pchips').innerHTML=Array.from({length:2**n},(_,i)=>`<span class="${i===pv?'on':''}">${i.toString(2).padStart(n,'0')}</span>`).join('');
+ $('#ptx').textContent=`${2**n} patterns, the register holds ${pv.toString(2).padStart(n,'0')} now. With 64 bits: 18,446,744,073,709,551,616 patterns, still one at a time.`};
+$('#pn').oninput=patDraw;$('#pst').onclick=()=>{pv=Math.floor(Math.random()*2**+$('#pn').value);patDraw()};patDraw();
+
+/* ---------- gates ---------- */
+const G={NOT:a=>1-a,AND:(a,b)=>a&b,OR:(a,b)=>a|b,XOR:(a,b)=>a^b,NAND:(a,b)=>1-(a&b)};
+const shape=(t,x,y,w=80,h=60)=>{const r=h/2,cy=y+r;let d,ex='';
+ if(t==='AND'||t==='NAND'){const bw=t==='NAND'?w-10:w;d=`M${x} ${y}H${x+bw-r}A${r} ${r} 0 0 1 ${x+bw-r} ${y+h}H${x}Z`}
+ else if(t==='OR'||t==='XOR'){const o=t==='XOR'?10:0,Xo=x+o,W=w-o;d=`M${Xo} ${y}Q${Xo+W*.3} ${cy} ${Xo} ${y+h}Q${Xo+W*.7} ${y+h} ${x+w} ${cy}Q${Xo+W*.7} ${y} ${Xo} ${y}Z`;if(o)ex=`<path class="gl" d="M${x} ${y}Q${x+W*.3} ${cy} ${x} ${y+h}"/>`}
+ else d=`M${x} ${y}L${x+w-10} ${cy}L${x} ${y+h}Z`;
+ return `<path class="gate" d="${d}"/>${ex}${t==='NAND'||t==='NOT'?`<circle class="gate" cx="${x+w-5}" cy="${cy}" r="5"/>`:''}`};
+const GD={NOT:'flips the bit',AND:'1 only if both are 1',OR:'1 if at least one is 1',XOR:'1 if they differ',NAND:'0 only if both are 1'};
+const GF={NOT:['Q = <span class="ov">A</span>','¬A'],AND:['Q = A · B','A ∧ B'],OR:['Q = A + B','A ∨ B'],XOR:['Q = A ⊕ B','= A·<span class="ov">B</span> + <span class="ov">A</span>·B'],NAND:['Q = <span class="ov">A · B</span>','= <span class="ov">A</span> + <span class="ov">B</span>  (De Morgan)']};
+const gin={A:0,B:0};
+const gatesDraw=()=>{const a=gin.A,b=gin.B;$('#gA').textContent=a;$('#gB').textContent=b;$('#gA').classList.toggle('on',!!a);$('#gB').classList.toggle('on',!!b);
+ $('#gcards').innerHTML=Object.keys(G).map(t=>{const one=t==='NOT',o=one?G[t](a):G[t](a,b);
+  const wires=one?`<path class="wire${a?' hi':''}" d="M0 45H74"/>`:`<path class="wire${a?' hi':''}" d="M0 33H74"/><path class="wire${b?' hi':''}" d="M0 57H74"/>`;
+  const rows=one?[[0],[1]]:[[0,0],[0,1],[1,0],[1,1]];
+  const tb=`<table><tr>${one?'<th>A</th>':'<th>A</th><th>B</th>'}<th>out</th></tr>${rows.map(r=>{const out=G[t](...r),hl=one?r[0]===a:(r[0]===a&&r[1]===b);return `<tr class="${hl?'hl':''}">${r.map(x=>`<td class="${x?'one':''}">${x}</td>`).join('')}<td class="${out?'one':''}">${out}</td></tr>`}).join('')}</table>`;
+  return `<div class="panel gcard"><h3>${t}</h3><svg viewBox="0 0 180 90" role="img" aria-label="${t} gate">${wires}<path class="wire${o?' hi':''}" d="M140 45H180"/>${shape(t,60,15)}</svg><p class="fm" style="font-size:21px;margin:0">${GF[t][0]}</p><p class="fm small mute">${GF[t][1]}</p><p class="small mute">${GD[t]}</p>${tb}</div>`}).join('')};
+$('#gA').onclick=()=>{gin.A^=1;gatesDraw()};$('#gB').onclick=()=>{gin.B^=1;gatesDraw()};gatesDraw();
+
+/* ---------- circuit renderer ---------- */
+const circ=(el,S,st)=>{const v={...st};S.g.forEach(g=>v[g.id]=G[g.t](...g.i.map(k=>v[k])));let h='';
+ (S.b||[]).forEach(([x,y,w,hh,l])=>h+=`<rect class="box" x="${x}" y="${y}" width="${w}" height="${hh}" rx="10"/><text class="blab" x="${x+8}" y="${y+hh-8}">${l}</text>`);
+ S.w.forEach(([k,d])=>h+=`<path class="wire${v[k]?' hi':''}" d="${d}"/>`);
+ S.j.forEach(([x,y,k])=>h+=`<circle class="jn${v[k]?' hi':''}" cx="${x}" cy="${y}" r="6"/>`);
+ S.g.forEach(g=>h+=shape(g.t,g.x,g.y)+`<text class="glab" x="${g.x+(g.t==='AND'?34:46)}" y="${g.y+35}" text-anchor="middle">${g.t}</text>`);
+ Object.entries(S.in).forEach(([k,[x,y]])=>h+=`<g class="sw" data-k="${k}" tabindex="0" role="button" aria-label="Toggle ${k}"><circle class="lamp${v[k]?' hi':''}" cx="${x}" cy="${y}" r="22"/><text class="lv${v[k]?' on':''}" x="${x}" y="${y+7}">${v[k]}</text><text class="ilab" x="${x-30}" y="${y+6}" text-anchor="end">${k}</text></g>`);
+ S.o.forEach(([l,k,x,y])=>h+=`<circle class="lamp${v[k]?' hi':''}" cx="${x}" cy="${y}" r="22"/><text class="lv${v[k]?' on':''}" x="${x}" y="${y+7}">${v[k]}</text><text class="ilab" x="${x+30}" y="${y+6}">${l}</text>`);
+ el.innerHTML=h;return v};
+const bindSw=(el,st,draw)=>{const t=e=>{const g=e.target.closest('.sw');if(!g)return;e.preventDefault();st[g.dataset.k]^=1;draw();const n=el.querySelector(`.sw[data-k="${g.dataset.k}"]`);if(n&&e.type==='keydown')n.focus()};
+ el.addEventListener('click',t);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')t(e)})};
+
+/* half adder */
+const HA={in:{A:[70,58],B:[70,250]},g:[{id:'S',t:'XOR',x:300,y:40,i:['A','B']},{id:'C',t:'AND',x:300,y:180,i:['A','B']}],
+ w:[['A','M92 58H314M160 58V198H314'],['B','M92 250H220V82H314M220 222H314'],['S','M380 70H523'],['C','M380 210H523']],
+ j:[[160,58,'A'],[220,222,'B']],o:[['S','S',545,70],['C','C',545,210]]};
+const hst={A:1,B:1};
+const haDraw=()=>{const v=circ($('#hasvg'),HA,hst);$('#haread').textContent=`${v.A} + ${v.B} = ${v.C}${v.S}`;
+ $('#hatt tbody').innerHTML=[[0,0],[0,1],[1,0],[1,1]].map(([a,b])=>`<tr class="${a===v.A&&b===v.B?'hl':''}"><td>${a}</td><td>${b}</td><td class="${a&b?'one':''}">${a&b}</td><td class="${a^b?'one':''}">${a^b}</td></tr>`).join('')};
+bindSw($('#hasvg'),hst,haDraw);haDraw();
+$('#hatab tbody').innerHTML=[[0,0],[0,1],[1,0],[1,1]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td><td class="mono">${a+b===2?'2 = 10₂':a+b}</td><td class="${a&b?'one':''}">${a&b}</td><td class="${a^b?'one':''}">${a^b}</td><td class="rev ${a&b?'one':''}">${a&b}</td><td class="rev ${a^b?'one':''}">${a^b}</td></tr>`).join('');
+$('#hareveal').onclick=()=>{const t=$('#hatab'),s=t.classList.toggle('show');$('#hareveal').classList.toggle('on',s);$('#hanote').textContent=s?'C is exactly AND. S is exactly XOR. Two gates, done.':''};
+
+/* full adder */
+const FA={in:{A:[70,58],B:[70,110],Cin:[70,290]},
+ g:[{id:'s1',t:'XOR',x:260,y:40,i:['A','B']},{id:'c1',t:'AND',x:260,y:150,i:['A','B']},{id:'S',t:'XOR',x:500,y:52,i:['s1','Cin']},{id:'c2',t:'AND',x:500,y:200,i:['s1','Cin']},{id:'Cout',t:'OR',x:680,y:210,i:['c1','c2']}],
+ w:[['A','M92 58H274M150 58V168H274'],['B','M92 110H200M200 82V192M200 82H274M200 192H274'],['Cin','M92 290H460V94H514M460 242H514'],['s1','M340 70H514M420 70V218H514'],['c1','M340 180H640V228H694'],['c2','M580 230H620V252H694'],['S','M580 82H778'],['Cout','M760 240H778']],
+ j:[[150,58,'A'],[200,110,'B'],[420,70,'s1'],[460,242,'Cin']],
+ b:[[125,22,235,200,'Half-adder 1'],[402,34,195,232,'Half-adder 2']],o:[['S','S',800,82],['Cout','Cout',800,240]]};
+const fst={A:1,B:0,Cin:1};
+const faDraw=()=>{const v=circ($('#fasvg'),FA,fst);$('#faread').textContent=`${v.A} + ${v.B} + ${v.Cin} = ${v.Cout}${v.S}   (middle: s1=${v.s1}, c1=${v.c1}, c2=${v.c2})`};
+bindSw($('#fasvg'),fst,faDraw);faDraw();
+$('#fatab tbody').innerHTML=Array.from({length:8},(_,i)=>{const a=i>>2&1,b=i>>1&1,c=i&1,n=a+b+c;return `<tr><td>${a}</td><td>${b}</td><td>${c}</td><td>${n}</td><td class="${n>>1?'one':''}">${n>>1}</td><td class="${n&1?'one':''}">${n&1}</td></tr>`}).join('');
+
+/* ripple */
+let RA=11,RB=6;
+const ripDraw=()=>{const c=[0],s=[];for(let i=0;i<4;i++){const a=RA>>i&1,b=RB>>i&1;s[i]=a^b^c[i];c[i+1]=(a&b)|(c[i]&(a^b))}
+ const col=i=>3-i;let h='<span class="rl">A</span><span></span>';for(let k=3;k>=0;k--)h+=`<button class="bit${RA>>k&1?' on':''}" data-r="A" data-k="${k}" aria-label="A bit ${k}">${RA>>k&1}</button>`;
+ h+='<span class="rl">B</span><span></span>';for(let k=3;k>=0;k--)h+=`<button class="bit${RB>>k&1?' on':''}" data-r="B" data-k="${k}" aria-label="B bit ${k}">${RB>>k&1}</button>`;
+ h+=`<span class="rl"></span><span class="small mute">carry out</span>`;for(let k=3;k>=0;k--)h+=`<div class="fa${c[k+1]?' c':''}" style="transition-delay:${RM?0:k*160}ms"><b>FA${k}</b><span>in ${c[k]}</span><span>out ${c[k+1]}</span></div>`;
+ h+='<span class="rl">Sum</span>';[c[4],s[3],s[2],s[1],s[0]].forEach((b,j)=>h+=`<span class="sbit${b?' on':''}" style="transition-delay:${RM?0:(4-j)*160}ms">${b}</span>`);
+ $('#rip').innerHTML=h;const sum=RA+RB;$('#ripread').textContent=`${RA.toString(2).padStart(4,'0')} + ${RB.toString(2).padStart(4,'0')} = ${sum.toString(2).padStart(5,'0')}   (${RA} + ${RB} = ${sum})`};
+$('#rip').onclick=e=>{const b=e.target.closest('[data-r]');if(!b)return;if(b.dataset.r==='A')RA^=1<<b.dataset.k;else RB^=1<<b.dataset.k;ripDraw()};
+$$('[data-rp]').forEach(b=>b.onclick=()=>{const p=b.dataset.rp;if(p==='r'){RA=Math.floor(Math.random()*16);RB=Math.floor(Math.random()*16)}else[RA,RB]=p.split(',').map(Number);ripDraw()});ripDraw();
+
+/* ---------- speed ---------- */
+const num=v=>v<10?v.toFixed(1):Math.round(v).toLocaleString('en');
+const fT=l=>{const L=Math.log10;if(l<-6)return num(10**(l+9))+' ns';if(l<-3)return num(10**(l+6))+' µs';if(l<0)return num(10**(l+3))+' ms';
+ if(l<L(60))return num(10**l)+' s';if(l<L(3600))return num(10**l/60)+' min';if(l<L(86400))return num(10**l/3600)+' hours';if(l<L(3.156e7))return num(10**l/86400)+' days';
+ const ly=l-L(3.156e7);if(ly<9)return num(10**ly)+' years';return sci(l-17.638)+' × age of universe'};
+const raceDraw=()=>{const e=+$('#rcn').value,n=10**e;$('#rcnv').textContent=Math.round(n).toLocaleString('en');
+ const t1=2*e-9,t2=Math.log10(n*Math.log2(n))-7;$('#rc1t').innerHTML=fT(t1);$('#rc2t').innerHTML=fT(t2);
+ $('#rc1').classList.toggle('win',t1<t2);$('#rc2').classList.toggle('win',t2<=t1)};
+$('#rcn').oninput=raceDraw;raceDraw();
+const GR=[['log₂ n','binary search',e=>Math.log10(e*3.3219)],['√n','quantum search',e=>e/2,1],['n','look at every item',e=>e,1],['n · log₂ n','good sorting',e=>e+Math.log10(e*3.3219)],['n²','compare all pairs',e=>2*e],['2ⁿ','try every subset',e=>10**e*0.30103]];
+const growDraw=()=>{const e=+$('#gn').value;$('#gnv').textContent=(10**e).toLocaleString('en');
+ $('#grows').innerHTML=GR.map(([l,ex,f,hot])=>{const lg=f(e),w=Math.min(100,Math.max(1.5,lg/24*100)),cnt=lg<15?Math.round(10**lg).toLocaleString('en'):'≈ 10<sup>'+Math.floor(lg).toLocaleString('en')+'</sup>';
+  return `<div class="gr${hot?' hot':''}"><span><b class="mono">${l}</b><br><span class="mute small">${ex}</span></span><div class="t"><i style="width:${w}%"></i></div><span class="v">${cnt} steps<br><span class="mute">${lg>24?'off the chart':fT(lg-9)}</span></span></div>`}).join('')};
+$('#gn').oninput=growDraw;growDraw();
+
+/* ---------- IBM experiments + sandbox ---------- */
+const H1=(p1,l0='0',l1='1')=>`<div class="hist"><div><i style="height:${(1-p1)*100}%"></i>${l0}: ${pct(1-p1)}</div><div><i style="height:${p1*100}%"></i>${l1}: ${pct(p1)}</div></div>`;
+$('#exps').innerHTML=[['X then measure','X',1,'Always 1: X is a NOT.'],['H then measure','H',.5,'A fair coin: 50 / 50.'],['H, H then measure','H H',0,'Always 0! Two coins in a row should be random…']].map(([t,g,p,c])=>`<div class="panel exp"><h3>${t}</h3><div class="qwire" style="min-height:50px"><span class="k">|0⟩</span>${g.split(' ').map(x=>`<span>${x}</span>`).join('')}<span>M</span></div>${H1(p)}<p class="small">${c}</p></div>`).join('');
+let seq=['H','H'];
+const ap=(g,[a,b])=>g==='X'?[b,a]:g==='Z'?[a,-b]:[(a+b)/Math.SQRT2,(a-b)/Math.SQRT2];
+let shots=null;
+const sbDraw=()=>{const st=seq.reduce((s,g)=>ap(g,s),[1,0]),p1=st[1]**2;
+ $('#sbw').innerHTML=`<span class="k">|0⟩</span>${seq.map(g=>`<span>${g}</span>`).join('')}<span>M</span>`;
+ const c=shots||[Math.round((1-p1)*1024),Math.round(p1*1024)];
+ $('#sbh').innerHTML=`<div><i style="height:${c[0]/1024*100}%"></i>0: ${c[0]}</div><div><i style="height:${c[1]/1024*100}%"></i>1: ${c[1]}</div>`;
+ $('#sbp').innerHTML=`State before measuring: <span class="mono">${fx(st[0])}|0⟩ ${fx(st[1])}|1⟩</span>. Exact chances: 0 → ${pct(1-p1)}, 1 → ${pct(p1)}.${shots?'':' <span class="mute">(Press Run to sample.)</span>'}`};
+const sbSet=s=>{seq=s;shots=null;sbDraw()};
+$$('[data-sg]').forEach(b=>b.onclick=()=>{if(seq.length<10)sbSet([...seq,b.dataset.sg])});
+$$('[data-sp]').forEach(b=>b.onclick=()=>sbSet(b.dataset.sp.split('')));
+$('#sbu').onclick=()=>sbSet(seq.slice(0,-1));$('#sbc').onclick=()=>sbSet([]);
+$('#sbr').onclick=()=>{const st=seq.reduce((s,g)=>ap(g,s),[1,0]),p1=st[1]**2;let k=0;for(let i=0;i<1024;i++)if(Math.random()<p1)k++;shots=[1024-k,k];sbDraw()};sbDraw();
+
+/* ---------- Deutsch classical game ---------- */
+const FN=[{n:'always 0',f:[0,0],k:'constant',c:'# box: nothing to do (f is always 0)'},{n:'always 1',f:[1,1],k:'constant',c:'qc.x(1)            # box: f is always 1'},{n:'copy x',f:[0,1],k:'balanced',c:'qc.cx(0, 1)        # box: f(x) = x'},{n:'flip x',f:[1,0],k:'balanced',c:'qc.cx(0, 1)        # box: f(x) = NOT x\nqc.x(1)'}];
+let dg,dstats={g:0,q:0,ok:0};
+const dNew=()=>{dg={fn:Math.floor(Math.random()*4),a:[null,null],done:false};$('#dans').textContent='';$('#dver').textContent='';dBtns()};
+const dBtns=()=>{$('#dq0').disabled=dg.done||dg.a[0]!==null;$('#dq1').disabled=dg.done||dg.a[1]!==null;$('#dgc').disabled=$('#dgb').disabled=dg.done;
+ $('#dstat').textContent=dstats.g?`Played ${dstats.g}, correct ${dstats.ok}, average queries ${(dstats.q/dstats.g).toFixed(1)}.`:'Ask, then decide.'};
+const dAsk=x=>{dg.a[x]=FN[dg.fn].f[x];$('#dans').textContent=dg.a.map((v,i)=>v===null?'':`f(${i}) = ${v}`).filter(Boolean).join('   ');dBtns()};
+const dGuess=k=>{const q=dg.a.filter(v=>v!==null).length,f=FN[dg.fn],ok=f.k===k;dg.done=true;dstats.g++;dstats.q+=q;dstats.ok+=ok;
+ $('#dver').textContent=(ok?'Correct. ':'Wrong. ')+`It was "${f.n}" (${f.k}). `+(q<2?(ok?'Lucky: with fewer than 2 queries you could not be sure.':'With fewer than 2 queries it was a coin toss.'):'With 2 queries you can always be sure.');
+ $('#dver').style.color=ok?'var(--blue)':'var(--red)';dBtns()};
+$('#dq0').onclick=()=>dAsk(0);$('#dq1').onclick=()=>dAsk(1);$('#dgc').onclick=()=>dGuess('constant');$('#dgb').onclick=()=>dGuess('balanced');$('#dnew').onclick=dNew;dNew();
+
+/* ---------- Deutsch quantum ---------- */
+let dO=2,dS=4;
+const X2=(s,q)=>s.map((_,i)=>s[i^(1<<q)]);
+const H2=(s,q)=>s.map((_,i)=>{const b=i>>q&1,j=i^(1<<q);return b?(s[j]-s[i])/Math.SQRT2:(s[i]+s[j])/Math.SQRT2});
+const UF=(s,f)=>{const o=[0,0,0,0];s.forEach((a,i)=>{const x=i&1,y=i>>1&1;o[x|((y^f[x])<<1)]+=a});return o};
+const dState=(f,k)=>{let s=[1,0,0,0];if(k>=1)s=X2(s,1);if(k>=2)s=H2(H2(s,0),1);if(k>=3)s=UF(s,f);if(k>=4)s=H2(s,0);return s};
+const DCAP=['Both qubits start at 0: the state is |00⟩.','X flips the helper qubit q1 to 1.','H on both qubits: all four combinations are present at once, with signs. Note q1\'s part carries a minus.','One single call to the box. For a balanced box, some signs flip; for a constant box, all or none do.','H on q0 turns "same signs" into 0 and "opposite signs" into 1. Now measure q0.'];
+const SX=[100,185,262,442,505];
+const dDraw=()=>{const f=FN[dO].f,s=dState(f,dS);
+ let h=`<text x="14" y="76" style="font-size:18px">q0 |0⟩</text><text x="14" y="156" style="font-size:18px">q1 |0⟩</text><line x1="88" y1="70" x2="580" y2="70" style="stroke:var(--ink);stroke-width:2"/><line x1="88" y1="150" x2="440" y2="150" style="stroke:var(--ink);stroke-width:2"/>`;
+ SX.forEach((x,i)=>h+=`<line x1="${x}" y1="34" x2="${x}" y2="180" style="stroke:${i===dS?'var(--red)':'var(--off)'};stroke-width:${i===dS?3:1.5};stroke-dasharray:5 5"/><text x="${x}" y="203" text-anchor="middle" style="font-size:15px;font-weight:${i===dS?700:400};fill:${i===dS?'var(--red)':'var(--mute)'}">${i}</text>`);
+ const box=(x,y,l)=>`<rect x="${x-22}" y="${y-22}" width="44" height="44" rx="6" class="gate"/><text x="${x}" y="${y+7}" text-anchor="middle" style="font:700 19px var(--mono);stroke:none">${l}</text>`;
+ h+=box(145,150,'X')+box(225,70,'H')+box(225,150,'H')+`<rect x="290" y="40" width="120" height="140" rx="8" style="fill:var(--ink)"/><text x="350" y="106" text-anchor="middle" style="font:700 24px var(--mono);fill:var(--bg);stroke:none">box</text><text x="350" y="134" text-anchor="middle" style="font-size:15px;fill:var(--bg);stroke:none">${FN[dO].n}</text>`+box(475,70,'H');
+ h+=`<rect x="530" y="48" width="50" height="44" rx="6" class="gate"/><path d="M540 80a15 15 0 0 1 30 0M555 80L568 58" style="fill:none;stroke:var(--ink);stroke-width:2"/><text x="592" y="76" style="font-size:16px">→ ${dS===4?(s[1]**2+s[3]**2>.5?'1':'0'):'?'}</text>`;
+ $('#dsvg').innerHTML=h;
+ $('#damps').innerHTML=['00','01','10','11'].map((k,i)=>{const a=s[i],w=Math.abs(a)*50;return `<div class="amp"><span class="k">|${k}⟩</span><div class="tr"><i class="${a<-1e-9?'neg':''}" style="left:${a<0?50-w:50}%;width:${w}%"></i></div><span class="v">${fx(a)}</span></div>`}).join('');
+ $('#dst').innerHTML=SX.map((_,i)=>`<button class="${i===dS?'on':''}" data-s="${i}">${i}</button>`).join('');
+ $('#dcap').textContent=DCAP[dS];
+ const p1=s[1]**2+s[3]**2;$('#dres').innerHTML=dS<4?'<span class="mute">Step to 4 to read the answer.</span>':`q0 reads <span class="${p1>.5?'r':'b'}">${p1>.5?1:0}</span> with certainty → the box is <span class="${p1>.5?'r':'b'}">${p1>.5?'balanced':'constant'}</span>. One query.`;
+ $('#dorc').innerHTML=FN.map((f,i)=>`<button class="${i===dO?'on':''}" data-o="${i}">${f.n}</button>`).join('');
+ $('#dcode').textContent=`from qiskit import QuantumCircuit\n\nqc = QuantumCircuit(2, 1)\nqc.x(1)                # step 1\nqc.h([0, 1])           # step 2\n${FN[dO].c}\nqc.h(0)                # step 4\nqc.measure(0, 0)       # 0 = constant, 1 = balanced`};
+$('#dst').onclick=e=>{const b=e.target.closest('[data-s]');if(b){dS=+b.dataset.s;dDraw()}};
+$('#dorc').onclick=e=>{const b=e.target.closest('[data-o]');if(b){dO=+b.dataset.o;dDraw()}};
+$('#dcopy').onclick=()=>{try{navigator.clipboard.writeText($('#dcode').textContent).then(()=>{$('#dcopy').textContent='Copied'},()=>{$('#dcopy').textContent='Copy blocked'})}catch(e){$('#dcopy').textContent='Copy blocked'}};
+dDraw();
+
+/* ---------- Grover classical game ---------- */
+let gg,ghist=[];
+const ggNew=()=>{gg={p:Math.floor(Math.random()*16),o:new Set(),done:false};ggDraw()};
+const ggDraw=()=>{$('#ggb').innerHTML=Array.from({length:16},(_,i)=>{const op=gg.o.has(i),w=op&&i===gg.p;return `<button class="${w?'win':op?'op':''}" data-b="${i}" ${gg.done&&!op?'disabled':''} aria-label="Box ${i+1}">${w?'prize':op?'empty':i+1}</button>`}).join('');
+ $('#ggt').textContent=gg.o.size;$('#gga').textContent=ghist.length?(ghist.reduce((a,b)=>a+b,0)/ghist.length).toFixed(1):'–'};
+$('#ggb').onclick=e=>{const b=e.target.closest('[data-b]');if(!b||gg.done)return;const i=+b.dataset.b;if(gg.o.has(i))return;gg.o.add(i);if(i===gg.p){gg.done=true;ghist.push(gg.o.size)}ggDraw()};
+$('#ggn').onclick=ggNew;ggNew();
+
+/* ---------- Grover idea + table ---------- */
+const bars=(el,v,t,neg)=>{el.innerHTML=v.map((a,i)=>neg?`<i class="${i===t?'t':''}" style="height:${Math.abs(a)*45}%;${a<0?'top:'+(50)+'%;align-self:flex-start':'align-self:flex-end;bottom:50%'}"></i>`:`<i class="${i===t?'t':''}" style="height:${a*100}%"></i>`).join('')};
+bars($('#gi1'),Array(8).fill(.35),-1);
+$('#gi2').innerHTML=Array(8).fill(0).map((_,i)=>`<i class="${i===5?'t':''}" style="height:35%;${i===5?'transform:translateY(50%)':'transform:translateY(-50%)'}"></i>`).join('');
+bars($('#gi3'),[.12,.12,.12,.12,.12,.95,.12,.12],5);
+const opt=n=>Math.max(1,Math.round(Math.PI/(4*Math.asin(1/Math.sqrt(n)))-.5));
+$('#gcmp tbody').innerHTML=[4,100,1e4,1e6,1e12].map(n=>`<tr><td class="l mono">${n.toLocaleString('en')}</td><td>${((n+1)/2).toLocaleString('en')}</td><td class="r">${opt(n).toLocaleString('en')}</td></tr>`).join('');
+
+/* ---------- Grover demo ---------- */
+let gN=16,gT=11,ga,gk,gmk,gmeas,gtimer=null;
+const gReset=()=>{clearInterval(gtimer);gtimer=null;ga=Array(gN).fill(1/Math.sqrt(gN));gk=0;gmk=false;gmeas=-1;$('#gmsg').textContent='';gDraw()};
+const gMark=()=>{if(gmeas>=0)return;ga[gT]=-ga[gT];gmk=!gmk;gDraw()};
+const gDiff=()=>{if(gmeas>=0)return;const m=ga.reduce((a,b)=>a+b,0)/gN;ga=ga.map(a=>2*m-a);if(gmk){gk++;gmk=false}gDraw()};
+const gStep=()=>{if(gmeas>=0)return;if(!gmk)gMark();gDiff()};
+const gDraw=()=>{const m=ga.reduce((a,b)=>a+b,0)/gN;
+ $('#gbars').innerHTML=ga.map((a,i)=>`<div class="gb${i===gT?' t':''}${i===gmeas?' got':''}" data-g="${i}" title="Box ${i+1}"><i style="${a>=0?`bottom:50%;height:${a*50}%`:`top:50%;height:${-a*50}%`}"></i></div>`).join('')+'<div class="zero"></div>'+(gmk?`<div class="mean" style="top:${50-m*50}%"><span>average</span></div>`:'');
+ const p=ga[gT]**2,o=opt(gN);$('#gk').textContent=gk;$('#gp').textContent=pct(p);$('#gopt').textContent=o;$('#gcl').textContent=pct(Math.min(1,gk/gN));
+ $('#gN').innerHTML=[8,16,32,64].map(n=>`<button class="${n===gN?'on':''}" data-n="${n}">${n}</button>`).join('');
+ const K=2*o+2,W=320,Hh=120,bw=W/(K+1);const th=Math.asin(1/Math.sqrt(gN));
+ let s='';for(let k=0;k<=K;k++){const q=Math.sin((2*k+1)*th)**2,hh=q*(Hh-20);s+=`<rect x="${k*bw+bw*.15}" y="${Hh-14-hh}" width="${bw*.7}" height="${hh}" style="fill:${k===gk?'var(--red)':'var(--blue)'};opacity:${k===gk?1:.55}"/>`}
+ let pl='';for(let k=0;k<=K;k++)pl+=(k?'L':'M')+(k*bw+bw/2).toFixed(1)+' '+(Hh-14-Math.min(1,k/gN)*(Hh-20)).toFixed(1);
+ s+=`<path d="${pl}" style="fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:4 3"/><line x1="0" y1="${Hh-14}" x2="${W}" y2="${Hh-14}" class="ax"/><text x="2" y="${Hh-1}" style="font-size:12px">0</text><text x="${W-2}" y="${Hh-1}" text-anchor="end" style="font-size:12px">${K} rounds</text>`;
+ $('#gspark').innerHTML=s};
+$('#gbars').onclick=e=>{const b=e.target.closest('[data-g]');if(b){gT=+b.dataset.g;gReset()}};
+$('#gN').onclick=e=>{const b=e.target.closest('[data-n]');if(b){gN=+b.dataset.n;gT=Math.floor(gN*.7);gReset()}};
+$('#gm').onclick=gMark;$('#gd').onclick=gDiff;$('#gs').onclick=gStep;$('#gr').onclick=gReset;
+$('#gauto').onclick=()=>{gReset();const o=opt(gN);if(RM){for(let i=0;i<o;i++)gStep();return}let i=0;gtimer=setInterval(()=>{if(i%2===0)gMark();else gDiff();i++;if(i>=2*o){clearInterval(gtimer);gtimer=null}},450)};
+$('#gmeas').onclick=()=>{if(gmeas>=0)return;clearInterval(gtimer);gtimer=null;let r=Math.random(),i=0;for(;i<gN-1;i++){r-=ga[i]**2;if(r<0)break}
+ gmeas=i;const hit=i===gT;$('#gmsg').textContent=hit?`Found the prize (box ${i+1}) after ${gk} round${gk===1?'':'s'}.`:`Read box ${i+1}: missed. Reset and try again.`;$('#gmsg').style.color=hit?'var(--blue)':'var(--red)';
+ ga=ga.map((_,j)=>j===i?1:0);gmk=false;gDraw()};
+gReset();
+
+/* ---------- qubit circle ---------- */
+const D=Math.PI/180;let th=0,mir=null,saved=null,qan=null;
+const nrm=a=>{a=((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;return a};
+const qDraw=()=>{const c=220,R=150,x=c+R*Math.cos(th),y=c-R*Math.sin(th),a=Math.cos(th),b=Math.sin(th);
+ let h=`<line x1="50" y1="220" x2="390" y2="220" class="ax"/><line x1="220" y1="50" x2="220" y2="390" class="ax"/><circle cx="220" cy="220" r="150" class="ring"/>
+ <text x="398" y="227" style="font-size:20px">|0⟩</text><text x="220" y="40" text-anchor="middle" style="font-size:20px">|1⟩</text><text x="42" y="227" text-anchor="end" style="font-size:20px">−|0⟩</text><text x="220" y="418" text-anchor="middle" style="font-size:20px">−|1⟩</text>`;
+ if(mir!==null){const dx=Math.cos(mir)*200,dy=Math.sin(mir)*200;h+=`<line x1="${c-dx}" y1="${c+dy}" x2="${c+dx}" y2="${c-dy}" style="stroke:var(--blue);stroke-width:2.5;stroke-dasharray:8 6"/>`}
+ h+=`<path d="M${x} ${y}V220M${x} ${y}H220" class="dash"/><circle cx="${x}" cy="220" r="5" style="fill:var(--blue)"/><circle cx="220" cy="${y}" r="5" style="fill:var(--red)"/>
+ <line x1="220" y1="220" x2="${c+(R-14)*Math.cos(th)}" y2="${c-(R-14)*Math.sin(th)}" class="arrow" marker-end="url(#ahr)"/><circle cx="${x}" cy="${y}" r="16" style="fill:var(--rt);stroke:var(--red);stroke-width:2;cursor:grab"/>`;
+ $('#qsvg').innerHTML=h;
+ $('#qst').innerHTML=`<span class="b">${fx(a)}</span>|0⟩ <span class="r">${fx(b)}</span>|1⟩`;
+ $('#qp0').style.width=a*a*100+'%';$('#qp1').style.width=b*b*100+'%';$('#qp0v').textContent=pct(a*a);$('#qp1v').textContent=pct(b*b);
+ const dg=Math.round(th/D);$('#qang').value=dg;$('#qangv').textContent=dg+'°'};
+const qTo=(t1,done)=>{cancelAnimationFrame(qan);const t0=th;if(RM){th=nrm(t1);qDraw();done&&done();return}const st=performance.now();
+ const f=n=>{const u=Math.min(1,(n-st)/550),e=u<.5?2*u*u:1-(-2*u+2)**2/2;th=t0+(t1-t0)*e;qDraw();if(u<1)qan=requestAnimationFrame(f);else{th=nrm(t1);qDraw();done&&done()}};qan=requestAnimationFrame(f)};
+const qGate=g=>{const phi={X:45,Z:0,H:22.5}[g]*D;let d=phi-th;d=((d+Math.PI/2)%Math.PI+Math.PI)%Math.PI-Math.PI/2;mir=phi;$('#qu').disabled=true;$('#qmr').textContent='';
+ qTo(th+2*d,()=>setTimeout(()=>{mir=null;qDraw()},500))};
+$$('[data-qg]').forEach(b=>b.onclick=()=>qGate(b.dataset.qg));
+$$('[data-qp]').forEach(b=>b.onclick=()=>{mir=null;$('#qu').disabled=true;$('#qmr').textContent='';let t=+b.dataset.qp*D,d=nrm(t-th);qTo(th+d)});
+$('#qang').oninput=()=>{th=+$('#qang').value*D;mir=null;qDraw()};
+$('#qm').onclick=()=>{saved=th;const p0=Math.cos(th)**2,r=Math.random()<p0?0:1;$('#qmr').innerHTML=`Read <b class="${r?'r':'b'}">${r}</b>. The arrow snapped to |${r}⟩.`;$('#qu').disabled=false;
+ const t=r?(Math.sin(th)>=0?90:-90)*D:(Math.cos(th)>=0?0:180)*D;qTo(th+nrm(t-th))};
+$('#qu').onclick=()=>{if(saved!==null){qTo(th+nrm(saved-th));$('#qu').disabled=true;$('#qmr').textContent='Prepared the same state again.'}};
+const qsv=$('#qsvg');let drag=false;
+const qPt=e=>{const r=qsv.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*440,py=(e.clientY-r.top)/r.height*440;th=Math.atan2(220-py,px-220);mir=null;qDraw()};
+qsv.addEventListener('pointerdown',e=>{drag=true;cancelAnimationFrame(qan);try{qsv.setPointerCapture(e.pointerId)}catch(_){}qPt(e)});
+qsv.addEventListener('pointermove',e=>{if(drag)qPt(e)});
+qsv.addEventListener('pointerup',()=>drag=false);qsv.addEventListener('pointercancel',()=>drag=false);
+th=30*D;qDraw();
+
+/* ---------- Grover on 5 qubits ---------- */
+const N5=32;let g5w=22,g5s=1,g5got=-1;
+const G5L=['Start','After H gates','Oracle, round 1','Round 1','Round 2','Round 3','Round 4'];
+const b5=x=>x.toString(2).padStart(5,'0');
+const g5State=k=>{let s=Array(N5).fill(0);s[0]=1;if(k<1)return s;s=Array(N5).fill(1/Math.sqrt(N5));
+ const orc=()=>{s[g5w]=-s[g5w]},dif=()=>{const m=s.reduce((a,b)=>a+b,0)/N5;s=s.map(a=>2*m-a)};
+ if(k>=2)orc();if(k>=3)dif();for(let r=4;r<=k;r++){orc();dif()}return s};
+const mi=t=>`<mi>${t}</mi>`,mn=t=>`<mn>${t}</mn>`,ket=t=>`<mo stretchy="false">|</mo>${t}<mo stretchy="false">⟩</mo>`;
+const g5Eq=(k,s)=>{const w=mn(b5(g5w)),fr=`<mfrac><mn>1</mn><msqrt><mn>32</mn></msqrt></mfrac>`;
+ if(k===0)return `<math display="block"><mrow>${ket(mi('ψ'))}<mo>=</mo>${ket(mn('00000'))}</mrow></math>`;
+ if(k===1)return `<math display="block"><mrow>${ket(mi('ψ'))}<mo>=</mo>${fr}<munderover><mo>∑</mo><mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow><mn>31</mn></munderover>${ket(mi('x'))}</mrow></math>`;
+ if(k===2)return `<math display="block"><mrow>${ket(mi('ψ'))}<mo>=</mo>${fr}<mo>(</mo><munder><mo>∑</mo><mrow><mi>x</mi><mo>≠</mo>${w}</mrow></munder>${ket(mi('x'))}<mo>−</mo>${ket(w)}<mo>)</mo></mrow></math>`;
+ const aw=s[g5w],ao=s[(g5w+1)%N5];return `<math display="block"><mrow>${ket(mi('ψ'))}<mo>=</mo><mn>${aw.toFixed(3)}</mn>${ket(w)}<mo>${ao<0?'−':'+'}</mo><mn>${Math.abs(ao).toFixed(3)}</mn><munder><mo>∑</mo><mrow><mi>x</mi><mo>≠</mo>${w}</mrow></munder>${ket(mi('x'))}</mrow></math>`};
+const g5Draw=()=>{const s=g5State(g5s),p=s[g5w]**2,r=Math.max(0,g5s-2);
+ const y=i=>32+i*40;let h='';
+ for(let i=0;i<5;i++)h+=`<text x="8" y="${y(i)+6}" style="font-size:16px">q${i} |0⟩</text><line x1="72" y1="${y(i)}" x2="560" y2="${y(i)}" style="stroke:var(--ink);stroke-width:2"/>`;
+ for(let i=0;i<5;i++)h+=`<rect x="113" y="${y(i)-16}" width="32" height="32" rx="5" class="gate" style="${g5s>=1?'stroke:var(--blue);stroke-width:3':''}"/><text x="129" y="${y(i)+6}" text-anchor="middle" style="font:700 16px var(--mono);stroke:none">H</text>`;
+ h+=`<rect x="200" y="10" width="290" height="204" rx="12" class="box"/><text x="345" y="230" text-anchor="middle" style="font-size:15px;fill:var(--mute)">one Grover round, repeat × 4</text>`;
+ h+=`<rect x="215" y="16" width="110" height="192" rx="8" style="fill:var(--ink);${g5s===2?'stroke:var(--red);stroke-width:4':''}"/><text x="270" y="108" text-anchor="middle" style="font:700 17px var(--mono);fill:var(--bg);stroke:none">oracle</text><text x="270" y="130" text-anchor="middle" style="font-size:14px;fill:var(--bg);stroke:none">flips ${b5(g5w)}</text>`;
+ h+=`<rect x="365" y="16" width="110" height="192" rx="8" class="gate" style="${g5s>=3?'stroke:var(--red);stroke-width:3':''}"/><text x="420" y="108" text-anchor="middle" style="font:700 17px var(--mono)">diffuser</text><text x="420" y="130" text-anchor="middle" style="font-size:14px;fill:var(--mute)">around average</text>`;
+ for(let i=0;i<5;i++)h+=`<rect x="530" y="${y(i)-16}" width="34" height="32" rx="5" class="gate"/><path d="M537 ${y(i)+8}a10 10 0 0 1 20 0M547 ${y(i)+8}l8 -14" style="fill:none;stroke:var(--ink);stroke-width:1.8"/><text x="580" y="${y(i)+6}" style="font:700 16px var(--mono);fill:${g5got>=0?'var(--red)':'var(--mute)'}">${g5got>=0?b5(g5got)[4-i]:'?'}</text>`;
+ const mx=[92,172,345,495,495,495,495][g5s];h+=`<line x1="${mx}" y1="4" x2="${mx}" y2="220" style="stroke:var(--red);stroke-width:3;stroke-dasharray:6 5"/>`;
+ if(g5s>=3)h+=`<text x="${mx+8}" y="16" style="font:700 15px var(--mono);fill:var(--red)">× ${r}</text>`;
+  $('#g5svg').innerHTML=h;$('#g5eq').innerHTML=g5Eq(g5s,s);
+ $('#g5st').innerHTML=G5L.map((l,i)=>`<button class="${i===g5s?'on':''}" data-k="${i}">${i===0?'0':i===1?'H':i===2?'oracle':'round '+(i-2)}</button>`).join('');
+ $('#g5cap').innerHTML=[`Five qubits, all 0. Like five bits, the register holds a single value: 00000.`,`Five H gates: the register now holds all 32 inputs at once, each with amplitude 1/√32 ≈ 0.177, a 3.1% chance. Five operations, 32 inputs.`,`One oracle call acts on all 32 inputs at once and flips the sign of <b class="mono">${b5(g5w)}</b>. Chances are unchanged: nothing is visible yet.`][g5s]||`After ${r} round${r>1?'s':''} (${r} oracle call${r>1?'s':''}), the chance of reading <b class="mono">${b5(g5w)}</b> is <b class="r">${(p*100).toFixed(1)}%</b>. A classical search would have checked ${r} of 32 inputs (${pct(r/32)}).`;
+ $('#g5g').innerHTML=s.map((a,i)=>{const q=a*a,wd=Math.abs(a)*50;return `<div class="kc${i===g5w?' w':''}${i===g5got?' got':''}" data-x="${i}" role="button" tabindex="0" style="background:color-mix(in srgb,var(--blue) ${Math.round(Math.min(1,Math.sqrt(q))*40)}%,var(--paper))"><div class="h"><span>|${b5(i)}⟩</span><span>${q<0.0005?'0%':(q*100).toFixed(1)+'%'}</span></div><div class="tr"><i class="${a<-1e-9?'neg':''}" style="left:${a<0?50-wd:50}%;width:${wd}%"></i></div></div>`}).join('')};
+$('#g5st').onclick=e=>{const b=e.target.closest('[data-k]');if(b){g5s=+b.dataset.k;g5got=-1;g5Draw()}};
+const g5Pick=e=>{const c=e.target.closest('[data-x]');if(!c)return;if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();g5w=+c.dataset.x;g5got=-1;g5Draw()};
+$('#g5g').addEventListener('click',g5Pick);$('#g5g').addEventListener('keydown',g5Pick);
+const g5Sample=()=>{const s=g5State(g5s);let r=Math.random(),i=0;for(;i<N5-1;i++){r-=s[i]**2;if(r<0)break}return i};
+$('#g5m').onclick=()=>{g5got=g5Sample();g5Draw();$('#g5cap').innerHTML+=` <br>Measured <b class="mono ${g5got===g5w?'b':'r'}">${b5(g5got)}</b>: ${g5got===g5w?'the marked input.':'not the marked one.'}`};
+$('#g5m20').onclick=()=>{let k=0;for(let i=0;i<20;i++)if(g5Sample()===g5w)k++;g5got=-1;g5Draw();$('#g5cap').innerHTML+=` <br>20 measurements: the marked input came out <b class="r">${k}</b> times.`};
+g5Draw();
+
+/* ---------- Bell pairs ---------- */
+$('#bell').onclick=()=>{$('#bellr').innerHTML=Array.from({length:10},()=>Math.random()<.5?'<span class="b">00</span>':'<span class="r">11</span>').join(' ')};
+}
+</script>
+</body>
+</html>
